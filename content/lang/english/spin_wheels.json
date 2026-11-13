@@ -1,0 +1,157 @@
+[
+	{
+		"level_id" : "001",
+		"word_list" : ["cat","mat","pat"],
+		"spinners" : [
+			{
+				"spinner1" : {
+				"letter_list" : ["c"]
+			}
+		},
+			{
+				"spinner2" : {
+				"letter_list" : ["a"]
+			}
+		},{
+				"spinner3" : {
+				"letter_list" : ["t"]
+			}
+		}
+		]
+	},{
+		"level_id" : "002",
+		"word_list" : ["cap","map","nap","tap"],
+		"spinners" : [
+			{
+				"spinner1" : {
+				"letter_list" : ["c","m","n","t"]
+			}
+		},
+			{
+				"spinner2" : {
+				"letter_list" : ["a"]
+			}
+		},{
+				"spinner3" : {
+				"letter_list" : ["p"]
+			}
+		}
+		]
+	},{
+		"level_id" : "003",
+		"word_list" : ["cat","cam","can","cap","map","man","mat","nap","pam","pan","pat","tan","tap"],
+		"spinners" : [
+			{
+				"spinner1" : {
+				"letter_list" : ["c","m","n","p","t"]
+			}
+		},
+			{
+				"spinner2" : {
+				"letter_list" : ["a"]
+			}
+		},{
+				"spinner3" : {
+				"letter_list" : ["c","m","n","p","t"]
+			}
+		}
+		]
+	},{
+		"level_id" : "004",
+		"word_list" : ["fin","lip","liz","sin","sip","sit","sis","zip","zit","nip","nil","pit","pin","pip"],
+		"spinners" : [
+			{
+				"spinner1" : {
+				"letter_list" : ["f","l","s","n","p","z"]
+			}
+		},
+			{
+				"spinner2" : {
+				"letter_list" : ["i"]
+			}
+		},{
+				"spinner3" : {
+				"letter_list" : ["f","l","s","n","p","z"]
+			}
+		}
+		]
+	},{
+		"level_id" : "005",
+		"word_list" : ["cat","cam","can","cap","map","man","mat","nap","nip",
+										"nil","pam","pal","pan","pat","tan","tap","fan","fat","fin",
+										"fit","lap","lat","lip","lit","liz","sam","sap","sat","sal",
+										"sim","sin","sip","sit","sis","zap","zip","zit","pit","pin","pip"
+									],
+		"spinners" : [
+			{
+				"spinner1" : {
+				"letter_list" : ["c","m","n","p","t","f","l","s","z"]
+			}
+		},
+			{
+				"spinner2" : {
+				"letter_list" : ["a","i"]
+			}
+		},{
+				"spinner3" : {
+				"letter_list" : ["c","m","n","p","t","f","l","s","z"]
+			}
+		}
+		]
+	},{
+		"level_id" : "006",
+		"word_list" : [
+				"duct","fact","pact","sect","tact","daft","deft","gift","haft","heft",
+				"left","lift","loft","raft","rift","sift","soft","tuft","waft","weft",
+				"bulb","talc","bald","gild","held","meld","mild","mold","weld","wild",
+				"golf","gulf","self","wolf","balk","bilk","bulk","hulk","milk","silk",
+				"sulk","film","helm","kiln","gulp"
+		],
+		"spinners" : [
+			{
+				"spinner1" : {
+				"letter_list" : ["b","c","d","f","g","h","l","m","p","r","s","t","z"]
+			}
+		},
+			{
+				"spinner2" : {
+				"letter_list" : ["a","e","i","o","u"]
+			}
+		},{
+				"spinner3" : {
+				"letter_list" : ["c","f","l"]
+			}
+		},{
+				"spinner4" : {
+				"letter_list" : ["p","t","f","d","k"]
+			}
+		}
+		]
+	},{
+		"level_id" : "007",
+		"word_list" : [
+			"slam","slap","trim","fled","slap","fred","bled","bred","brad","drab","gram",
+			"glam","spud","slim","slog","skit","flap","slot","clad","drip","flit","glad"
+		],
+		"spinners" : [
+			{
+				"spinner1" : {
+				"letter_list" : ["b","c","d","f","g","p","s","t"]
+			}
+		},
+			{
+				"spinner2" : {
+				"letter_list" : ["l","t","r","n","k","p"]
+			}
+		},{
+				"spinner3" : {
+				"letter_list" : ["a","e","i","o","u"]
+			}
+		},{
+				"spinner4" : {
+				"letter_list" : ["p","t","f","d","m"]
+			}
+		}
+		]
+	}
+]

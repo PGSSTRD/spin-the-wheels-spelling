@@ -1,7 +1,7 @@
 # Spin The Wheels — Test Specification
 
-**Status:** Draft — product decisions noted below need confirmation  
-**Last updated:** 2026-11-13  
+**Status:** Draft — plain-browser language fallback is covered; remaining product decisions need confirmation
+**Last updated:** 2026-11-16
 **Product scope:** MVP Implementation only
 
 ## 1. Purpose
@@ -120,14 +120,14 @@ Run each Fixture B variant independently.
 
 ### TST-11 — Local `file://` load and offline gameplay (PRD-07, DVS-01, DVS-02, DVS-10)
 
-- **Setup:** Open built `index.html` directly in Chrome using `file:///.../index.html?cr_lang=<english-code>&cr_user_id=test-user`, set DevTools Network to Offline.
+- **Setup:** Open the built English `index.html?cr_lang=english` directly as a local file in Chrome (for example, `file:///.../index.html?cr_lang=english`), set DevTools Network to Offline.
 - **Pass:** Ready or explicit local-data error appears within 10 seconds; with valid content, a selection animates, local media loads and plays where allowed; there are zero external requests, zero service-worker registrations, and no uncaught JS errors. XHR status 0 succeeds for local files.
 - **Fail:** Startup waits on network, a critical local asset uses `fetch()` or Cache Storage, a request escapes the package, or the loading UI remains indefinitely.
 
 ### TST-12 — Query parameters and non-container mode (DVS-03, DVS-08)
 
-- **Setup:** Run with the English `cr_lang`, missing/unknown language, and with/without a fake `ReactNativeWebView.postMessage`.
-- **Pass:** Correct English data is loaded for the configured code; unsupported/missing code produces explicit error; `cr_user_id` is read opaquely or set to `""`; without a bridge, reporting is a no-op with zero errors or attempted messages.
+- **Setup:** Run with `cr_lang=english`, with no `cr_lang` and no container bridge, with no `cr_lang` and a fake `ReactNativeWebView.postMessage` bridge, with an unknown language, and with/without `cr_user_id`.
+- **Pass:** The explicit English code loads English data; with no language parameter in a plain browser, English loads by default; with no language parameter and a container bridge, a configuration error is shown; an unsupported code shows an explicit error; `cr_user_id` is read opaquely or set to `""`; without a bridge, reporting is a no-op with zero errors or attempted messages.
 - **Fail:** Another language is silently substituted, an identity is invented, or bridge absence breaks gameplay.
 
 ### TST-13 — Build output audit (DVS-01, DVS-02, DVS-07, DVS-09)
@@ -193,3 +193,4 @@ The following tests assume proposals that should be updated if product decisions
 ## 11. Change log
 
 2026-11-13 — Copilot — Created the initial MVP test strategy, acceptance checks, and requirement traceability matrix.
+2026-11-16 — Copilot — Added tests for English defaulting in plain browsers and required cr_lang on container launches.

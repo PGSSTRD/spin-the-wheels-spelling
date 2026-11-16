@@ -1,7 +1,7 @@
 # Spin The Wheels — Product Requirements Document
 
-**Status:** Draft — product decisions noted below need confirmation  
-**Last updated:** 2026-11-13  
+**Status:** Draft — plain-browser English default specified; remaining product decisions need confirmation
+**Last updated:** 2026-11-16
 **Product scope:** MVP Implementation only
 
 ## 1. Purpose
@@ -65,7 +65,7 @@ The game MUST load a level identifier, three spinner letter sets, and a word lis
 
 ### PRD-06 — English-only content
 
-The MVP MUST use English words, letters, images, and pronunciations. The launch language is read from the Curious Reader `cr_lang` query parameter; supported content for this MVP is the English catalog code agreed with Curious Learning.
+The MVP MUST use English words, letters, images, and pronunciations. The launch language is read from the Curious Reader `cr_lang` query parameter. In a plain browser, if that parameter is absent, the game MUST default to `english`; a Curious Reader container launch MUST provide `cr_lang`, and its absence MUST be treated as a configuration error. Unsupported language codes MUST produce an explicit error.
 
 ### PRD-07 — Offline/container operation
 
@@ -121,3 +121,4 @@ These are explicit proposals/unknowns, not claims made by the source brief. Reso
 ## 9. Change log
 
 2026-11-13 — Copilot — Created the initial MVP product requirements and recorded source gaps as open questions.
+2026-11-16 — Copilot — Specified that plain-browser launches default to English when cr_lang is absent while container launches still require it.

@@ -1,7 +1,7 @@
 # Spin The Wheels — Developer Specification
 
-**Status:** Draft — product decisions noted below need confirmation  
-**Last updated:** 2026-11-13  
+**Status:** Draft — plain-browser English default specified; remaining product decisions need confirmation
+**Last updated:** 2026-11-16
 **Product scope:** MVP Implementation only
 
 ## 1. Purpose and related specifications
@@ -36,10 +36,12 @@ Requirement IDs in this document use `DVS-`. Each entry names related PRD requir
 ### DVS-03 — Query parsing (PRD-06, PRD-07)
 
 - Parse launch parameters from `window.location.search`, not from a server-side URL:
-  - `cr_lang`: required by Curious Reader. The English catalog value is to be confirmed; use the configured catalog code, not an assumed display-name/code equivalence.
+  - `cr_lang`: when present, use the requested supported language. This MVP supports `english`.
+  - If `cr_lang` is absent in a plain browser (no `ReactNativeWebView.postMessage` bridge), default explicitly to `english`.
+  - If `cr_lang` is absent when the Curious Reader bridge is available, show an explicit configuration error; container launches are required to supply this parameter.
   - `cr_user_id`: opaque container identity for reporting; when absent, report `""`. Never generate a user/device identifier.
 - This MVP uses the 2-tier Layout A and MUST NOT require or use `cr_book`.
-- Unknown/missing `cr_lang` MUST produce an explicit unsupported/missing-language error; it MUST NOT trigger a network fallback or load a different language silently.
+- An unsupported `cr_lang` MUST produce an explicit error; it MUST NOT trigger a network fallback or silently load another language.
 
 ## 4. Level JSON contract
 
@@ -188,3 +190,4 @@ See PRD §7 for product questions. Development-impacting decisions include:
 ## 11. Change log
 
 2026-11-13 — Copilot — Created the initial runtime, data, offline integration, reporting, and packaging specification.
+2026-11-16 — Copilot — Added the plain-browser English default and retained the required cr_lang parameter for Curious Reader launches.

@@ -9,4 +9,4 @@ export interface Level {
   word_list: string[];
 }
 
-export type GameStatus = "loading" | "ready" | "spinning" | "result" | "data-error";
+export type GameStatus = "loading" | "ready" | "awaiting-change" | "spelling" | "correct" | "data-error";

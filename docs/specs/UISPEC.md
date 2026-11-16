@@ -1,7 +1,7 @@
 # Spin The Wheels — User Interface Specification
 
-**Status:** Draft — interaction and visual choices noted below need confirmation  
-**Last updated:** 2026-11-13  
+**Status:** Draft — playing-area order approved and implemented; remaining design choices need confirmation
+**Last updated:** 2026-11-16
 **Product scope:** MVP Implementation only
 
 ## 1. Purpose and conventions
@@ -12,18 +12,20 @@ UI requirement IDs use `UI-`. **Source** identifies a direct requirement from Ga
 
 ## 2. Screen and hierarchy
 
-### UI-01 — Main game screen (Source: PRD-01, PRD-02, PRD-04)
+### UI-01 — Main game screen (Source: PRD-01, PRD-02, PRD-04; approved layout decision)
 
 The main screen contains, in visual and reading order:
 
 1. A level/game title or accessible name (no title text/branding is prescribed).
-2. A central row of exactly three ordered letter-wheel slots.
-3. A word-result area showing the settled word.
-4. A picture area associated with the selected word.
+2. A word-result area showing the settled word.
+3. A picture area associated with the selected word, when displayed.
+4. A central row of exactly three ordered letter-wheel slots, beneath the picture and immediately above the primary action.
 5. One primary word-selection action.
 6. Status feedback for loading, errors, and unavailable media as needed.
 
 The screen MUST make the left-to-right reading order of the three letters unambiguous. The word-result text MUST remain available independently of the picture.
+
+DOM order MUST match this visual order. The missing-image fallback occupies the same picture area above the spinners. Preserve existing picture visibility: when no picture area is displayed in ready or spinning states, the spinners MUST still appear immediately above the primary action. Provide enough spacing to prevent overlap in portrait and landscape layouts.
 
 ### UI-02 — Letter wheels (Source: PRD-01, PRD-02)
 
@@ -115,3 +117,4 @@ Do not add as required MVP UI:
 ## 9. Change log
 
 2026-11-13 — Copilot — Created the initial screen, interaction-state, motion, and accessibility specification.
+2026-11-16 — Copilot — Replaced the wheels-first hierarchy with the approved word-result, picture, spinners, and button order in both DOM and visual presentation.

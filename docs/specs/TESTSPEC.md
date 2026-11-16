@@ -1,6 +1,6 @@
 # Spin The Wheels — Test Specification
 
-**Status:** Draft — plain-browser language fallback is covered; remaining product decisions need confirmation
+**Status:** Draft — approved playing-area order and plain-browser language fallback are covered; remaining product decisions need confirmation
 **Last updated:** 2026-11-16
 **Product scope:** MVP Implementation only
 
@@ -102,7 +102,8 @@ Run each Fixture B variant independently.
 
 - **Setup:** Observe loading, ready, spinning, result, data-error, and each media-error case.
 - **Pass:** The screen shows exactly three ordered slots; selection is disabled in loading/spinning/data-error and enabled in ready/result; errors and result remain visible in their defined states.
-- **Fail:** The action is available in an invalid state, an error is hidden, or a non-MVP manual-wheel control appears as required gameplay.
+- **Layout regression:** In result, assert word-result → picture → spinners → primary action in both DOM and visual order. Repeat with the missing-image fallback. The spinner group MUST be the picture area's next element sibling and the primary action MUST be the spinner group's next element sibling. In ready and spinning states, preserve existing picture visibility and assert the spinners remain immediately above the button.
+- **Fail:** The action is available in an invalid state, an error is hidden, the playing-area order differs from the above, or a non-MVP manual-wheel control appears as required gameplay.
 
 ### TST-09 — Motion and reduced motion (PRD-03, DVS-06, UI-02, UI-06)
 
@@ -113,6 +114,7 @@ Run each Fixture B variant independently.
 ### TST-10 — Responsive and keyboard/assistive operation (UI-07)
 
 - **Setup:** Test narrow portrait and landscape viewports, keyboard-only operation, focus visibility, and screen-reader/accessibility-tree output.
+- **Layout check:** At 375x812 and 812x375, verify both an available image and its missing-image fallback appear above the spinners, with the button below the spinners; no overlap or horizontal clipping is allowed. Use a test image fixture when production media is not supplied.
 - **Pass:** All three letters, word, and action are visible and operable without clipping; the button has an accessible name; the selected word is exposed and announced once after settlement; status is not color-only.
 - **Fail:** Any required action or word is inaccessible or obscured.
 
@@ -194,3 +196,4 @@ The following tests assume proposals that should be updated if product decisions
 
 2026-11-13 — Copilot — Created the initial MVP test strategy, acceptance checks, and requirement traceability matrix.
 2026-11-16 — Copilot — Added tests for English defaulting in plain browsers and required cr_lang on container launches.
+2026-11-16 — Copilot — Added DOM-order regression and portrait/landscape checks for the approved picture, spinners, and button layout including the missing-image fallback.

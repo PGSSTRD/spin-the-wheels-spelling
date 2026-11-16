@@ -6,6 +6,7 @@ interface WheelProps {
   value: string;
   label: string;
   enabled: boolean;
+  incorrectAttempt?: number;
   onChange: (value: string) => void;
   onDraggingChange: (dragging: boolean) => void;
 }
@@ -13,7 +14,7 @@ interface WheelProps {
 const DRAG_STEP = 40;
 const LETTER_HEIGHT = 76;
 
-export function Wheel({ letters, value, label, enabled, onChange, onDraggingChange }: WheelProps) {
+export function Wheel({ letters, value, label, enabled, incorrectAttempt = 0, onChange, onDraggingChange }: WheelProps) {
   const [offset, setOffset] = useState(0);
   const drag = useRef<{ pointerId: number; y: number; value: string } | null>(null);
   const editable = enabled && letters.length > 1;
@@ -71,7 +72,7 @@ export function Wheel({ letters, value, label, enabled, onChange, onDraggingChan
 
   return (
     <div
-      className={`wheel-window${letters.length === 1 ? " wheel-fixed" : ""}${editable ? " wheel-editable" : ""}`}
+      className={`wheel-window${letters.length === 1 ? " wheel-fixed" : ""}${editable ? " wheel-editable" : ""}${incorrectAttempt > 0 ? " wheel-incorrect" : ""}`}
       role={letters.length > 1 ? "spinbutton" : "img"}
       aria-label={label}
       aria-disabled={letters.length > 1 ? !editable : undefined}
@@ -95,7 +96,7 @@ export function Wheel({ letters, value, label, enabled, onChange, onDraggingChan
         style={{ transform: `translateY(${-LETTER_HEIGHT + offset}px)` }}
       >
         {[previous, value, next].map((letter, index) => (
-          <span className="wheel-letter" key={index}>{letter}</span>
+          <span className="wheel-letter" key={index === 1 ? `selected-${incorrectAttempt}` : index}>{letter}</span>
         ))}
       </div>
     </div>

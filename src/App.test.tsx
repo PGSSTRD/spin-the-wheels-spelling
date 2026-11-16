@@ -101,10 +101,14 @@ describe("manual spelling cycle", () => {
     fireEvent.keyDown(wheel, { key: "ArrowUp" }); // m: another valid level word
     fireEvent.click(screen.getByRole("button", { name: "Spell" }));
     expect(screen.getByRole("status")).toHaveTextContent("Please try again!");
+    expect(wheel).toHaveClass("wheel-incorrect");
+    expect(screen.getByRole("img", { name: "Middle letter: a (fixed)" })).not.toHaveClass("wheel-incorrect");
+    expect(screen.getByRole("img", { name: "Last letter: t (fixed)" })).not.toHaveClass("wheel-incorrect");
     expect(audioSources).toEqual(["lang/english/audios/cat.mp3"]);
     expect(screen.getByRole("img", { name: "cat" })).toBeInTheDocument();
     fireEvent.keyDown(wheel, { key: "ArrowDown" });
     expect(screen.getByRole("status")).toHaveTextContent(instruction);
+    expect(wheel).not.toHaveClass("wheel-incorrect");
     fireEvent.click(screen.getByRole("button", { name: "Spell" }));
     expect(screen.getByRole("status")).toHaveTextContent("Correct!");
     expect(wheel).toHaveAttribute("aria-disabled", "true");
@@ -171,7 +175,10 @@ describe("manual spelling cycle", () => {
     fireEvent.click(screen.getByRole("button", { name: "Spell" }));
     expect(screen.getByRole("status")).toHaveTextContent("Please try again!");
     expect(last).toHaveAttribute("aria-valuetext", "Not selected");
+    expect(first).not.toHaveClass("wheel-incorrect");
+    expect(last).toHaveClass("wheel-incorrect");
     fireEvent.keyDown(last, { key: "ArrowDown" }); // t, last configured letter
+    expect(last).not.toHaveClass("wheel-incorrect");
     fireEvent.click(screen.getByRole("button", { name: "Spell" }));
     expect(screen.getByRole("status")).toHaveTextContent("Correct!");
   });

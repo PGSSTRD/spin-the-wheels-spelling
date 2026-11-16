@@ -25,6 +25,7 @@ export function App({
   const [word, setWord] = useState("");
   const [selectedLetters, setSelectedLetters] = useState<string[]>([]);
   const [feedback, setFeedback] = useState(INSTRUCTION);
+  const [incorrectAttempt, setIncorrectAttempt] = useState(0);
   const [pictureReady, setPictureReady] = useState(false);
   const [dragging, setDragging] = useState<Set<number>>(new Set());
   const [cycle, setCycle] = useState(0);
@@ -85,6 +86,7 @@ export function App({
     setWord("");
     setSelectedLetters(initialLetters(levels[nextIndex]));
     setFeedback(INSTRUCTION);
+    setIncorrectAttempt(0);
     setPictureReady(false);
     setDragging(new Set());
     setCycle((current) => current + 1);
@@ -108,6 +110,7 @@ export function App({
     setWord(nextWord);
     setSelectedLetters(initialLetters(level));
     setFeedback(INSTRUCTION);
+    setIncorrectAttempt(0);
     setPictureReady(false);
     setDragging(new Set());
     setCycle((current) => current + 1);
@@ -126,6 +129,7 @@ export function App({
     if (!wheelsEnabled) return;
     setSelectedLetters((current) => current.map((value, position) => position === index ? letter : value));
     setFeedback(INSTRUCTION);
+    setIncorrectAttempt(0);
     setStatus("spelling");
   };
 
@@ -142,11 +146,13 @@ export function App({
     if (!canSpell) return;
     if (selectedLetters.join("") === word) {
       setFeedback("Correct!");
+      setIncorrectAttempt(0);
       setStatus("correct");
       stopAudioRef.current?.();
       stopAudioRef.current = undefined;
     } else {
       setFeedback("Please try again!");
+      setIncorrectAttempt((current) => current + 1);
     }
   };
 
@@ -241,6 +247,7 @@ export function App({
                 value={selectedLetters[index]}
                 label={`${["First", "Middle", "Last"][index]} letter${spinner.letter_list.length === 1 ? `: ${spinner.letter_list[0]} (fixed)` : ""}`}
                 enabled={wheelsEnabled}
+                incorrectAttempt={selectedLetters[index] !== word[index] ? incorrectAttempt : 0}
                 onChange={(letter) => changeLetter(index, letter)}
                 onDraggingChange={(active) => changeDragging(index, active)}
               />

@@ -19,7 +19,10 @@ Wheel gestures suppress browser text selection and native text dragging;
 text elsewhere on the page remains selectable.
 
 After a letter changes, select **Spell** to check against the target. Retry
-incorrect attempts; after **Correct!**, the wheels lock and their selected
+incorrect attempts: only mismatched positions (including remaining `?` values)
+flash red together twice over one second. Matching letters remain unchanged.
+Each incorrect submission restarts the red flashes; adjusting a wheel clears
+them. After **Correct!**, the wheels lock and their selected
 letters flash gold together twice over one second (0.25 seconds gold, then
 0.25 seconds in their normal colors, repeated twice). The flashes begin
 immediately; celebration sound playback is currently disabled.

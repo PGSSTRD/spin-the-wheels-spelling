@@ -156,12 +156,15 @@ h1 {
 
 .wheel-fixed .wheel-letter, .wheels-awaiting-word .wheel-letter { --wheel-letter-color: #555; }
 
-.wheels-correct .wheel-letter:nth-child(2) {
-  animation: correct-letter-flash .5s step-end 2;
+.wheels-correct { --wheel-flash-color: #b8860b; }
+.wheel-incorrect { --wheel-flash-color: #e42e2e; }
+
+.wheels-correct .wheel-letter:nth-child(2), .wheel-incorrect .wheel-letter:nth-child(2) {
+  animation: letter-flash .5s step-end 2;
 }
 
-@keyframes correct-letter-flash {
-  from { color: #b8860b; }
+@keyframes letter-flash {
+  from { color: var(--wheel-flash-color); }
   50%, to { color: var(--wheel-letter-color); }
 }
 

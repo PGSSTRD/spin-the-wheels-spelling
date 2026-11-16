@@ -1,10 +1,11 @@
-import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { copyFileSync, cpSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import react from "@vitejs/plugin-react";
 import { defineConfig, type Plugin } from "vitest/config";
 
 function levelsDataPlugin(): Plugin {
   const sourcePath = resolve(process.cwd(), "content/lang/english/levels.json");
+  const audioPath = resolve(process.cwd(), "content/lang/english/audio");
   let outputPath = resolve(process.cwd(), "dist");
 
   return {
@@ -13,6 +14,19 @@ function levelsDataPlugin(): Plugin {
       outputPath = resolve(config.root, config.build.outDir);
     },
     configureServer(server) {
+      server.middlewares.use("/lang/english/audio", (request, response, next) => {
+        const pathname = (request.url ?? "").split("?")[0];
+        if (!/^\/(?:[a-z0-9-]+|words\/[a-z]+)\.mp3$/.test(pathname)) {
+          next();
+          return;
+        }
+        try {
+          response.setHeader("Content-Type", "audio/mpeg");
+          response.end(readFileSync(resolve(audioPath, `.${pathname}`)));
+        } catch (error) {
+          next(error instanceof Error ? error : new Error("Could not read audio asset."));
+        }
+      });
       server.middlewares.use("/lang/english/levels.json", (_request, response, next) => {
         try {
           response.setHeader("Content-Type", "application/json");
@@ -26,6 +40,7 @@ function levelsDataPlugin(): Plugin {
       const targetPath = resolve(outputPath, "lang/english/levels.json");
       mkdirSync(resolve(outputPath, "lang/english"), { recursive: true });
       copyFileSync(sourcePath, targetPath);
+      cpSync(audioPath, resolve(outputPath, "lang/english/audio"), { recursive: true });
     },
     writeBundle() {
       const htmlPath = resolve(outputPath, "index.html");

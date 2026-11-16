@@ -9,6 +9,14 @@ interface AppProps {
   random?: () => number;
 }
 
+interface AudioTrack {
+  source: string;
+  description: string;
+  onUnavailable: (value: boolean) => void;
+  onPlaying?: () => void;
+  onComplete?: () => void;
+}
+
 const INSTRUCTION = "Give the wheels a spin and spell a word!";
 
 function initialLetters(level: Level): string[] {
@@ -31,6 +39,9 @@ export function App({
   const [cycle, setCycle] = useState(0);
   const [imageUnavailable, setImageUnavailable] = useState(false);
   const [audioUnavailable, setAudioUnavailable] = useState(false);
+  const [correctAudioUnavailable, setCorrectAudioUnavailable] = useState(false);
+  const [flashLetters, setFlashLetters] = useState(false);
+  const [narrationError, setNarrationError] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const stopAudioRef = useRef<(() => void) | undefined>(undefined);
   const gameStartedRef = useRef(false);
@@ -81,6 +92,7 @@ export function App({
   }, [language, userId]);
 
   const selectLevel = (nextIndex: number) => {
+    if (nextIndex === levelIndex) return;
     stopAudioRef.current?.();
     setLevelIndex(nextIndex);
     setWord("");
@@ -92,7 +104,15 @@ export function App({
     setCycle((current) => current + 1);
     setImageUnavailable(false);
     setAudioUnavailable(false);
+    setCorrectAudioUnavailable(false);
+    setFlashLetters(false);
+    setNarrationError("");
     setStatus("ready");
+    stopAudioRef.current = playAudio([{
+      source: `lang/${language}/audio/level-${Number(levels[nextIndex].level_id)}.mp3`,
+      description: "level announcement",
+      onUnavailable: () => setNarrationError("The level announcement could not be played."),
+    }]);
   };
 
   const findWord = () => {
@@ -116,13 +136,16 @@ export function App({
     setCycle((current) => current + 1);
     setImageUnavailable(false);
     setAudioUnavailable(false);
+    setCorrectAudioUnavailable(false);
+    setFlashLetters(false);
+    setNarrationError("");
     setStatus(level.spinners.every((spinner) => spinner.letter_list.length === 1) ? "spelling" : "awaiting-change");
     emitGameEvent({ type: "word_presented", lang: language, level_id: level.level_id, word: nextWord }, userId);
-    stopAudioRef.current = playAudio(
-      [`lang/${language}/audios/${nextWord}.mp3`, `lang/${language}/audios/${nextWord}.wav`],
-      `pronunciation for ${nextWord}`,
-      setAudioUnavailable,
-    );
+    stopAudioRef.current = playAudio([{
+      source: `lang/${language}/audio/words/${nextWord}.mp3`,
+      description: `pronunciation for ${nextWord}`,
+      onUnavailable: setAudioUnavailable,
+    }]);
   };
 
   const changeLetter = (index: number, letter: string) => {
@@ -149,10 +172,32 @@ export function App({
       setIncorrectAttempt(0);
       setStatus("correct");
       stopAudioRef.current?.();
-      stopAudioRef.current = undefined;
+      setAudioUnavailable(false);
+      setNarrationError("");
+      stopAudioRef.current = playAudio([
+        {
+          source: `lang/${language}/audio/correct.mp3`,
+          description: "correct-answer audio",
+          onUnavailable: setCorrectAudioUnavailable,
+        },
+        {
+          source: `lang/${language}/audio/words/${word}.mp3`,
+          description: `pronunciation for ${word}`,
+          onUnavailable: setAudioUnavailable,
+          onPlaying: () => setFlashLetters(true),
+          onComplete: () => setFlashLetters(true),
+        },
+      ]);
     } else {
       setFeedback("Please try again!");
       setIncorrectAttempt((current) => current + 1);
+      stopAudioRef.current?.();
+      setNarrationError("");
+      stopAudioRef.current = playAudio([{
+        source: `lang/${language}/audio/please-try-again.mp3`,
+        description: "try-again audio",
+        onUnavailable: () => setNarrationError("The try-again audio could not be played."),
+      }]);
     }
   };
 
@@ -236,12 +281,9 @@ export function App({
           </section>
         )}
 
-        <div className={`wheels${!word ? " wheels-awaiting-word" : ""}${status === "correct" ? " wheels-correct" : ""}`} role="group" aria-label="Spelling wheels">
+        <div className={`wheels${!word ? " wheels-awaiting-word" : ""}${status === "correct" && flashLetters ? " wheels-correct" : ""}`} role="group" aria-label="Spelling wheels">
           {level.spinners.map((spinner, index) => (
             <div className="wheel-column" key={`${level.level_id}-${cycle}-${spinner.id}`}>
-              <span className="wheel-position-label" aria-hidden="true">
-                {["FIRST", "MIDDLE", "LAST"][index]}
-              </span>
               <Wheel
                 letters={spinner.letter_list}
                 value={selectedLetters[index]}
@@ -258,8 +300,12 @@ export function App({
         <button className="spin-button" type="button" onClick={canFind ? findWord : spell} disabled={!canFind && !canSpell}>
           {status === "spelling" ? "Spell" : "Find a word"}
         </button>
+        {narrationError && <p className="media-status" role="status">{narrationError}</p>}
         {audioUnavailable && word && (
           <p className="media-status" role="status">Audio for “{word}” is unavailable.</p>
+        )}
+        {correctAudioUnavailable && (
+          <p className="media-status" role="status">The correct-answer audio is unavailable.</p>
         )}
         <footer className="game-footer">One word at a time. You’ve got this!</footer>
       </section>
@@ -267,44 +313,46 @@ export function App({
   );
 }
 
-function playAudio(
-  sources: string[],
-  description: string,
-  setUnavailable: (value: boolean) => void,
-): () => void {
+function playAudio(tracks: AudioTrack[]): () => void {
   let active = true;
   let audio: HTMLAudioElement | undefined;
-  try {
-    const player = new Audio();
-    audio = player;
-
-    const tryFormat = (formatIndex: number) => {
-      let handled = false;
-      const handleFailure = (error?: unknown) => {
-        if (handled || !active) return;
-        handled = true;
-        if (formatIndex + 1 < sources.length) {
-          tryFormat(formatIndex + 1);
-        } else {
-          console.warn(`Could not play ${description}.`, error);
-          setUnavailable(true);
-        }
-      };
-
-      player.onerror = () => handleFailure();
-      player.src = sources[formatIndex];
-      void player.play().catch(handleFailure);
+  const playTrack = (index: number) => {
+    if (!active || index >= tracks.length) return;
+    const track = tracks[index];
+    let finished = false;
+    const finish = () => {
+      if (!active || finished) return;
+      finished = true;
+      track.onComplete?.();
+      playTrack(index + 1);
     };
-
-    tryFormat(0);
-  } catch (error) {
-    console.warn(`Could not start ${description}.`, error);
-    setUnavailable(true);
-  }
+    const fail = (error?: unknown) => {
+      if (!active || finished) return;
+      console.warn(`Could not play ${track.description}.`, error);
+      track.onUnavailable(true);
+      finish();
+    };
+    try {
+      const player = audio ?? new Audio();
+      audio = player;
+      player.onended = finish;
+      player.onplaying = () => {
+        if (active && !finished) track.onPlaying?.();
+      };
+      player.onerror = () => fail();
+      player.src = track.source;
+      void player.play().catch(fail);
+    } catch (error) {
+      fail(error);
+    }
+  };
+  playTrack(0);
   return () => {
     active = false;
     if (audio) {
       audio.onerror = null;
+      audio.onended = null;
+      audio.onplaying = null;
       audio.pause();
     }
   };

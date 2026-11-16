@@ -4,6 +4,12 @@ React + TypeScript implementation of the three-letter MVP.
 
 ## Play
 
+The game starts silently, with the written instruction visible.
+The startup instruction MP3 is retained but not played; there is no
+instruction-playback error or retry button.
+Changing levels plays `level-<number>.mp3`; level 1 is announced only when
+returning from another level, never on initial startup.
+
 Select **Find a word** to reveal a target word and its picture and hear its
 pronunciation once. Multi-letter wheels start at `?`; single-letter wheels
 remain fixed and use gray spinners with darker gray letters. Before a word is
@@ -20,15 +26,21 @@ text elsewhere on the page remains selectable.
 
 After a letter changes, select **Spell** to check against the target. Retry
 incorrect attempts: only mismatched positions (including remaining `?` values)
-flash red together twice over one second. Matching letters remain unchanged.
+flash red together three times over 1.5 seconds while `please-try-again.mp3` plays.
+Matching letters remain unchanged.
 Each incorrect submission restarts the red flashes; adjusting a wheel clears
 them. After **Correct!**, the wheels lock and their selected
-letters flash gold together twice over one second (0.25 seconds gold, then
-0.25 seconds in their normal colors, repeated twice). The flashes begin
-immediately; celebration sound playback is currently disabled.
-**Find a word** starts a new cycle and clears any remaining flashes.
+letters flash gold together three times over 1.5 seconds (0.25 seconds gold, then
+0.25 seconds in their normal colors, repeated three times). First,
+`lang/english/audio/correct.mp3` plays to completion. The gold flashes then
+start when `lang/english/audio/words/<word>.mp3` begins playing.
+Audio errors are reported non-blockingly; remaining feedback still runs.
+**Find a word** starts a new cycle, stops pending audio, and clears any remaining
+flashes. Changing levels also cancels the sequence.
 The next target never repeats the current word unless the
 level contains only one word. Changing levels resets the attempt.
+As clarified, **Find a word** continues to pronounce the word on every use;
+the shorter `give-the-wheels-a-spin.mp3` is not played.
 
 ## Run locally
 
@@ -46,9 +58,13 @@ The app loads the level data from `content/lang/english/levels.json` through a
 local XHR-compatible route. The production build copies that source file to
 `dist/lang/english/levels.json` for standalone relative-path loading.
 
-Place word images at `assets/images/<word>.png` and pronunciations at
-`lang/english/audios/<word>.mp3` in the standalone package. Until those assets
-are supplied, the game displays the specified non-blocking media fallbacks.
+Audio source files live in `content/lang/english/audio/`, with word MP3s under
+`words/` and success feedback in `correct.mp3`. Development serves them under
+`lang/english/audio/`; the build copies them to the same relative path in
+the standalone package. Finding a target also uses its supplied word MP3.
+The supplied recordings cover all 40 unique configured words.
+Place word images at `assets/images/<word>.png` in the standalone package;
+missing images use the existing non-blocking fallback.
 The original celebration sound is retained at `content/audio/triumphant.wav`
 for future use, but is not played or bundled by the current game.
 

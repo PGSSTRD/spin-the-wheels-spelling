@@ -13,7 +13,7 @@ export function checkLevelAudio(
   language: string,
   onAvailable: (available: boolean) => void,
 ): () => void {
-  const base = `lang/${language}/audio`;
+  const base = `lang/${language}/audios`;
   const sources = [...new Set([
     `${base}/correct.mp3`,
     `${base}/please-try-again.mp3`,

@@ -166,7 +166,7 @@ export function App({
     setNarrationError("");
     setStatus("ready");
     playTracks([{
-      source: `lang/${language}/audio/level-${Number(levels[nextIndex].level_id)}.mp3`,
+      source: `lang/${language}/audios/level-${Number(levels[nextIndex].level_id)}.mp3`,
       description: "level announcement",
       onUnavailable: () => setNarrationError("The level announcement could not be played."),
     }], levels[nextIndex]);
@@ -199,7 +199,7 @@ export function App({
     setStatus(level.spinners.every((spinner) => spinner.letter_list.length === 1) ? "spelling" : "awaiting-change");
     emitGameEvent({ type: "word_presented", lang: language, level_id: level.level_id, word: nextWord }, userId);
     playTracks([{
-      source: `lang/${language}/audio/words/${nextWord}.mp3`,
+      source: `lang/${language}/audios/words/${nextWord}.mp3`,
       description: `pronunciation for ${nextWord}`,
       onUnavailable: setAudioUnavailable,
     }]);
@@ -243,12 +243,12 @@ export function App({
       setNarrationError("");
       playTracks([
         {
-          source: `lang/${language}/audio/correct.mp3`,
+          source: `lang/${language}/audios/correct.mp3`,
           description: "correct-answer audio",
           onUnavailable: setCorrectAudioUnavailable,
         },
         {
-          source: `lang/${language}/audio/words/${word}.mp3`,
+          source: `lang/${language}/audios/words/${word}.mp3`,
           description: `pronunciation for ${word}`,
           onUnavailable: setAudioUnavailable,
           onPlaying: () => setFlashLetters(true),
@@ -263,7 +263,7 @@ export function App({
       setIncorrectAttempt((current) => current + 1);
       setNarrationError("");
       playTracks([{
-        source: `lang/${language}/audio/please-try-again.mp3`,
+        source: `lang/${language}/audios/please-try-again.mp3`,
         description: "try-again audio",
         onUnavailable: () => setNarrationError("The try-again audio could not be played."),
         onComplete: completeAudio,

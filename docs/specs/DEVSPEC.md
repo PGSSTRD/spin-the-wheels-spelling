@@ -1,6 +1,6 @@
 # Spin The Wheels — Developer Specification
 
-**Status:** Synchronized with approved implementation through 2026-11-17; release packaging, identifiers, rights, and device validation remain outstanding
+**Status:** Synchronized through 2026-11-17, including language and retained-asset audio paths; release packaging, identifiers, rights, and device validation remain outstanding
 **Last updated:** 2026-11-17
 **Product scope:** MVP-derived game with approved manual-spelling changes
 
@@ -200,16 +200,18 @@ Observable implementation states:
 ### DVS-07 — Filenames, sequencing, and failures (PRD-04, PRD-05, PRD-08)
 
 Resolve relative to the runtime entry, not a per-word JSON media map:
+source recordings live under `content/lang/english/audios/`, preserving the
+language directory while using Curious Reader's required plural folder name.
 
 | Purpose | Runtime resource |
 |---|---|
 | Word picture, first candidate | `assets/images/<word>.svg` |
 | Word picture, second candidate | `assets/images/<word>.jpg` |
 | Final picture fallback | Bundled local `painting.svg`, grayscale via CSS |
-| Word pronunciation | `lang/english/audio/words/<word>.mp3` |
-| Correct-answer cue | `lang/english/audio/correct.mp3` |
-| Retry cue | `lang/english/audio/please-try-again.mp3` |
-| Actual level change | `lang/english/audio/level-<number>.mp3` |
+| Word pronunciation | `lang/english/audios/words/<word>.mp3` |
+| Correct-answer cue | `lang/english/audios/correct.mp3` |
+| Retry cue | `lang/english/audios/please-try-again.mp3` |
+| Actual level change | `lang/english/audios/level-<number>.mp3` |
 
 - Try SVG then JPG only on loading/decoding error, then the painting.
   Do not probe PNG, `.jpeg`, WebP, or all words. Reset to SVG on each new
@@ -240,7 +242,7 @@ Resolve relative to the runtime entry, not a per-word JSON media map:
 - No initial narration or initial level-1 cue. Actual level changes announce
   `Number(level_id)`, including returning to 1; pass the new level to audio
   suppression logic rather than inheriting the old level's unavailable flag.
-- Both instruction MP3s remain unused; `content/audio/triumphant.wav` is unused
+- Both instruction MP3s remain unused; `content/audios/triumphant.wav` is unused
   and not bundled. Do not re-enable them implicitly.
 - Validate actual MP3 decoding from file origin as well as HTTP. A prior
   compatibility repair losslessly remuxed affected clips with metadata removed
@@ -318,8 +320,8 @@ assets/images/<supplied image files>
 assets/fonts/lexend-v26-latin-regular.woff2
 assets/fonts/OFL-Lexend.txt
 lang/english/levels.json
-lang/english/audio/<cues>.mp3
-lang/english/audio/words/<word>.mp3
+lang/english/audios/<cues>.mp3
+lang/english/audios/words/<word>.mp3
 content/licenses.json
 ```
 
@@ -334,7 +336,7 @@ content/licenses.json
 - **Pending release step:** ThirdPartySpec Layout A still requires
   `<engine>-core.zip` with root index/engine/shared assets and no `lang/`,
   plus `<engine>-lang-<langCode>.zip` with `lang/<langCode>/levels.json` and
-  `audio/` including words. No wrapping folders or colliding tier files.
+  `audios/` including words. No wrapping folders or colliding tier files.
   The current build does not generate these ZIPs; do not zip all of `dist`
   as the engine tier and claim compliance.
 - Provide the separate true-PNG language icon (recommended 512 square,
@@ -360,7 +362,7 @@ content/licenses.json
 | Original speaker SVGs | 3 | `CC0-1.0`, owner-approved 2026-11-17 |
 | Lexend regular WOFF2 | 1 | `OFL-1.1`, The Lexend Project Authors |
 | Supplied painting and cat SVGs | 2 | `NOASSERTION`; original source/rights unverified |
-| Generated `audio/triumphant.wav` | 1 | `NOASSERTION`; original procedural audio, not ElevenLabs, no dedication approved |
+| Generated `audios/triumphant.wav` | 1 | `NOASSERTION`; original procedural audio, not ElevenLabs, no dedication approved |
 
 - MP3 notes preserve the contributor-reported free-plan conditions: no
   commercial license, reported noncommercial publication-title attribution
@@ -409,3 +411,5 @@ that flashes are reduced or a full accessibility audit has passed.
 2026-11-13 — Copilot — Created the initial runtime, data, offline integration, reporting, and packaging specification.
 2026-11-16 — Copilot — Added the plain-browser English default and retained the required cr_lang parameter for Curious Reader launches.
 2026-11-17 — Copilot — Replaced the obsolete schema and automatic-spin state machine with the current catalog, manual feedback gate, sequential media and probe logic, mute persistence, asset inventory, and explicit release-package gaps.
+2026-11-17 — Copilot — Changed English recording source, runtime, probe, package, and license-inventory paths to the required audios folder while preserving media bytes and behavior.
+2026-11-17 — Copilot — Renamed the top-level retained-audio folder to audios and updated the fanfare inventory path without bundling or activating it.

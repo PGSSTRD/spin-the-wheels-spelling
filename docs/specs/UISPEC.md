@@ -1,6 +1,6 @@
 # Spin The Wheels — User Interface Specification
 
-**Status:** Synchronized with approved presentation and interactions through 2026-11-17; older-device and full accessibility validation remain outstanding
+**Status:** Synchronized through 2026-11-17, including language-audio path alignment with unchanged presentation; older-device and full accessibility validation remain outstanding
 **Last updated:** 2026-11-17
 **Product scope:** MVP-derived game with approved manual-spelling changes
 
@@ -177,6 +177,8 @@ instruction/status text, and accessible control semantics.
 
 ### UI-06 — Narration and media failure (PRD-04, PRD-08)
 
+- Load local English cues from `lang/english/audios/` and pronunciations from
+  its `words/` subfolder; the folder rename does not change UI or timing.
 - On Find: pronounce the target once.
 - On correct: correct-answer cue, then target pronunciation, with gold as above.
 - On wrong: retry cue with red flashes.
@@ -269,3 +271,4 @@ design question or claim outstanding validation has occurred.
 2026-11-13 — Copilot — Created the initial screen, interaction-state, motion, and accessibility specification.
 2026-11-16 — Copilot — Replaced the wheels-first hierarchy with the approved word-result, picture, spinners, and button order in both DOM and visual presentation.
 2026-11-17 — Copilot — Replaced automatic-spin UI assumptions with approved manual controls, persistent format-prioritized pictures, Lexend styling, enlarged selector, colored sound icons, completion locking, and selection prevention.
+2026-11-17 — Copilot — Aligned narration resource paths with the required audios folder without changing controls, appearance, or playback sequencing.

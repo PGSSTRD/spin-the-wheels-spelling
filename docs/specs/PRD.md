@@ -1,6 +1,6 @@
 # Spin The Wheels — Product Requirements Document
 
-**Status:** Synchronized with approved gameplay and UI through 2026-11-17; release integration, licensing, and device validation remain outstanding
+**Status:** Synchronized through 2026-11-17, including Curious Reader language-audio folder naming; release integration, licensing, and device validation remain outstanding
 **Last updated:** 2026-11-17
 **Product scope:** MVP-derived game with explicitly approved manual-spelling changes
 
@@ -127,6 +127,8 @@ three ordered spinner definitions, and a non-empty spellable word list.
 Infer image and recording filenames from the target; no per-word media map
 or image index is required. Missing individual media is permitted at runtime
 and uses the specified fallback, whereas malformed level data is blocking.
+Keep English recordings under `lang/english/audios/`, including its `words/`
+subfolder, matching Curious Reader's required language-audio layout.
 
 The current catalog has five levels and 40 unique configured words; DEVSPEC
 contains the full catalog and exact validation rules, including the difference
@@ -259,3 +261,4 @@ at the bottom change log, and report additions, removals, and replacements.
 2026-11-13 — Copilot — Created the initial MVP product requirements and recorded source gaps as open questions.
 2026-11-16 — Copilot — Specified that plain-browser launches default to English when cr_lang is absent while container launches still require it.
 2026-11-17 — Copilot — Replaced automatic spinning and resolved gameplay proposals with approved manual spelling, feedback locking, local media, mute controls, presentation, and licensing requirements while retaining explicit release gaps.
+2026-11-17 — Copilot — Aligned the English language-audio folder name with Curious Reader's required audios convention without changing its location or gameplay.

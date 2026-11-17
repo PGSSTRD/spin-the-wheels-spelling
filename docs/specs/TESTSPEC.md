@@ -1,6 +1,6 @@
 # Spin The Wheels — Test Specification
 
-**Status:** Synchronized with approved implementation through 2026-11-17; unit/browser evidence is recorded separately from outstanding release validation
+**Status:** Synchronized through 2026-11-17, including language and retained-audio rename coverage; unit/browser evidence remains separate from outstanding release validation
 **Last updated:** 2026-11-17
 **Product scope:** MVP-derived game with approved manual-spelling changes
 
@@ -220,6 +220,10 @@ Record remaining accessibility findings rather than asserting certification.
 Check local JSON, all 40 unique word recordings, cue/level MP3s, images,
 Lexend, OFL, and manifest in the production package. Test actual decode/play
 from file origin, not merely successful HTTP or a mocked play promise.
+Require all 49 language MP3s under source `content/lang/english/audios/` and
+packaged `lang/english/audios/`, with matching manifest paths and unchanged
+recording bytes. Reject a leftover singular language-audio directory or runtime
+URL; the separate unused `content/audios/triumphant.wav` remains unbundled.
 
 **Pass:** no external dependency, root-absolute URL, Service Worker, CacheStorage
 requirement, HTML returned as missing image, or undeclared source map.
@@ -353,6 +357,13 @@ Implementation verification recorded during the approved work:
 - Native browser checks included standalone file origin, 40 word recordings,
   SVG/JPG/fallback requests and sizing, rendered Lexend, icon colors, responsive
   layout, real feedback completion, and native selection/input regression checks.
+- Language-folder rename checks on 2026-11-17: 45 App tests and production
+  type-check/build passed; all 49 MP3s matched their original bytes, packaged
+  copies, and development HTTP responses; all 47 active clips decoded from file
+  origin, with actual target/level playback verified under the new paths.
+  The retained unused `give-the-wheels-a-spin-and-spell-a-word.mp3` produced a
+  native format error in both source and package; its bytes are unchanged and
+  it remains unplayed, outside this rename's repair scope.
 
 These are historical implementation results, not newly executed tests merely
 because this document was updated. They do not prove every acceptance case.
@@ -378,3 +389,5 @@ a successful build, inventory, mocked event, or desktop screenshot.
 2026-11-16 — Copilot — Added tests for English defaulting in plain browsers and required cr_lang on container launches.
 2026-11-16 — Copilot — Added DOM-order regression and portrait/landscape checks for the approved picture, spinners, and button layout including the missing-image fallback.
 2026-11-17 — Copilot — Replaced automatic-spin and obsolete media fixtures with exact current data, manual-wheel, feedback-order, mute/probe, image, typography, licensing, native-selection, and honest release-gap acceptance coverage.
+2026-11-17 — Copilot — Required plural audios paths in playback, probes, development serving, packaging, and license inventory while retaining byte-identical recordings and existing gameplay checks.
+2026-11-17 — Copilot — Updated the retained fanfare path to content/audios while preserving its bytes and exclusion from gameplay and production assets.

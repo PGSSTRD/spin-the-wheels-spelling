@@ -73,8 +73,8 @@ Each incorrect submission restarts the red flashes; adjusting a wheel clears
 them. After **Correct!**, the wheels lock and their selected
 letters flash gold together three times over 1.5 seconds (0.25 seconds gold, then
 0.25 seconds in their normal colors, repeated three times). First,
-`lang/english/audio/correct.mp3` plays to completion. The gold flashes then
-start when `lang/english/audio/words/<word>.mp3` begins playing.
+`lang/english/audios/correct.mp3` plays to completion. The gold flashes then
+start when `lang/english/audios/words/<word>.mp3` begins playing.
 Audio errors are reported non-blockingly; remaining feedback still runs.
 After each Spell submission, the primary button stays disabled until both
 the feedback audio and all letter flashes finish. Muted or unavailable audio
@@ -105,9 +105,9 @@ The app loads the level data from `content/lang/english/levels.json` through a
 local XHR-compatible route. The production build copies that source file to
 `dist/lang/english/levels.json` for standalone relative-path loading.
 
-Audio source files live in `content/lang/english/audio/`, with word MP3s under
+Audio source files live in `content/lang/english/audios/`, with word MP3s under
 `words/` and success feedback in `correct.mp3`. Development serves them under
-`lang/english/audio/`; the build copies them to the same relative path in
+`lang/english/audios/`; the build copies them to the same relative path in
 the standalone package. Finding a target also uses its supplied word MP3.
 The supplied recordings cover all 40 unique configured words.
 The retry, five level-announcement, and twelve affected word MP3s have been
@@ -129,7 +129,7 @@ width while preserving their aspect ratio. Missing or invalid images use a
 grayscale rendering of the supplied `painting.svg`, bundled locally, with the
 same sizing. The fallback retains an accessible description but no visible
 message; gameplay remains usable. The original painting SVG is not modified.
-The original celebration sound is retained at `content/audio/triumphant.wav`
+The original celebration sound is retained at `content/audios/triumphant.wav`
 for future use, but is not played or bundled by the current game.
 
 ## Asset licensing

@@ -5,7 +5,7 @@ import { defineConfig, type Plugin } from "vitest/config";
 
 function levelsDataPlugin(): Plugin {
   const sourcePath = resolve(process.cwd(), "content/lang/english/levels.json");
-  const audioPath = resolve(process.cwd(), "content/lang/english/audio");
+  const audioPath = resolve(process.cwd(), "content/lang/english/audios");
   const imagesPath = resolve(process.cwd(), "content/assets/images");
   const fontLicensePath = resolve(process.cwd(), "content/assets/fonts/OFL-Lexend.txt");
   const licensesPath = resolve(process.cwd(), "content/licenses.json");
@@ -36,7 +36,7 @@ function levelsDataPlugin(): Plugin {
           next(error instanceof Error ? error : new Error("Could not read image asset."));
         }
       });
-      server.middlewares.use("/lang/english/audio", (request, response, next) => {
+      server.middlewares.use("/lang/english/audios", (request, response, next) => {
         const pathname = (request.url ?? "").split("?")[0];
         if (!/^\/(?:[a-z0-9-]+|words\/[a-z]+)\.mp3$/.test(pathname)) {
           next();
@@ -62,7 +62,7 @@ function levelsDataPlugin(): Plugin {
       const targetPath = resolve(outputPath, "lang/english/levels.json");
       mkdirSync(resolve(outputPath, "lang/english"), { recursive: true });
       copyFileSync(sourcePath, targetPath);
-      cpSync(audioPath, resolve(outputPath, "lang/english/audio"), { recursive: true });
+      cpSync(audioPath, resolve(outputPath, "lang/english/audios"), { recursive: true });
       cpSync(imagesPath, resolve(outputPath, "assets/images"), { recursive: true });
       mkdirSync(resolve(outputPath, "assets/fonts"), { recursive: true });
       copyFileSync(fontLicensePath, resolve(outputPath, "assets/fonts/OFL-Lexend.txt"));

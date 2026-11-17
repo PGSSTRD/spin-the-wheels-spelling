@@ -28,6 +28,7 @@ button, select { font: inherit; }
 }
 
 .game-card {
+  --brand-size: 52px;
   width: min(100%, 620px);
   padding: clamp(24px, 5vw, 46px);
   border: 1px solid #e8eee6;
@@ -47,8 +48,8 @@ button, select { font: inherit; }
 .brand-mark {
   display: grid;
   place-items: center;
-  flex: 0 0 52px;
-  height: 52px;
+  flex: 0 0 var(--brand-size);
+  height: var(--brand-size);
   border-radius: 17px;
   background: #dff2d9;
   color: #368047;
@@ -89,7 +90,7 @@ h1 {
   font-weight: 600;
 }
 
-.level-picker select:focus-visible, .spin-button:focus-visible {
+.level-picker select:focus-visible, .spin-button:focus-visible, .audio-toggle:focus-visible {
   outline: 3px solid #f1bd57;
   outline-offset: 3px;
 }
@@ -223,22 +224,48 @@ h1 {
 .media-fallback p { margin: 8px 0 0; font-size: 13px; }
 .media-status { margin: 10px 0 0; color: #8b6945; font-size: 12px; }
 
+.game-actions {
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr) 54px;
+  gap: 8px;
+  align-items: end;
+  margin-top: 24px;
+}
+
+.audio-toggle {
+  position: relative;
+  /* Match the left overhang of the header's rotated square. */
+  left: calc(var(--brand-size) * (1 - cos(6deg) - sin(6deg)) / 2);
+  width: 54px;
+  height: 54px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.audio-toggle img { display: block; width: 100%; height: 100%; }
+.audio-toggle:disabled { cursor: not-allowed; }
+.audio-toggle:disabled img { filter: invert(.55); }
+
 .spin-button {
   display: inline-flex;
-  margin-top: 24px;
-  min-width: 176px;
+  justify-self: center;
+  width: min(176px, 100%);
+  min-width: 0;
   min-height: 54px;
   align-items: center;
   justify-content: center;
   gap: 10px;
-  padding: 12px 24px;
+  padding: 12px clamp(4px, 2vw, 24px);
   border: 0;
   border-radius: 17px;
   background: #39874b;
   box-shadow: 0 5px 0 #28683a, 0 10px 20px #38874b25;
   color: #fff;
   cursor: pointer;
-  font: 600 19px "Trebuchet MS", sans-serif;
+  font: 600 clamp(14px, 3.8vw, 19px) "Trebuchet MS", sans-serif;
+  white-space: nowrap;
   transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
 }
 
@@ -264,9 +291,9 @@ h1 {
 }
 
 @media (max-width: 430px) {
-  .game-card { border-radius: 24px; }
+  .game-card { --brand-size: 44px; border-radius: 24px; }
   .game-header { gap: 10px; }
-  .brand-mark { flex-basis: 44px; height: 44px; border-radius: 14px; }
+  .brand-mark { border-radius: 14px; }
   .level-picker select { min-width: 82px; padding-inline: 8px 20px; }
   .instruction { margin-top: 26px; }
 }

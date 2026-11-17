@@ -3,21 +3,28 @@ import { loadLevels } from "./levels";
 import { emitGameEvent } from "./reporting";
 import type { GameStatus, Level } from "./types";
 import { Wheel } from "./Wheel";
+import { checkLevelAudio, playAudio, type AudioTrack } from "./audio";
+import mutedIcon from "../content/assets/icons/audio-muted.svg";
+import unmutedIcon from "../content/assets/icons/audio-unmuted-v2.svg";
 
 interface AppProps {
   loadLevelData?: (language: string) => Promise<Level[]>;
   random?: () => number;
 }
 
-interface AudioTrack {
-  source: string;
-  description: string;
-  onUnavailable: (value: boolean) => void;
-  onPlaying?: () => void;
-  onComplete?: () => void;
-}
-
 const INSTRUCTION = "Give the wheels a spin and spell a word!";
+const MUTE_STORAGE_KEY = "spin-the-wheels-muted";
+
+function initialMuted(): boolean {
+  const navigation = performance.getEntriesByType?.("navigation")[0];
+  if (!navigation || !("type" in navigation) || navigation.type !== "reload") return false;
+  try {
+    return sessionStorage.getItem(MUTE_STORAGE_KEY) === "true";
+  } catch (error) {
+    console.warn("Could not restore the audio preference for this reload.", error);
+    return false;
+  }
+}
 
 function initialLetters(level: Level): string[] {
   return level.spinners.map((spinner) => spinner.letter_list.length === 1 ? spinner.letter_list[0] : "?");
@@ -43,6 +50,8 @@ export function App({
   const [flashLetters, setFlashLetters] = useState(false);
   const [narrationError, setNarrationError] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [muted, setMuted] = useState(initialMuted);
+  const [audioAvailability, setAudioAvailability] = useState<{ level: Level; available: boolean }>();
   const stopAudioRef = useRef<(() => void) | undefined>(undefined);
   const gameStartedRef = useRef(false);
   const loadLevelDataRef = useRef(loadLevelData);
@@ -52,9 +61,45 @@ export function App({
   const language = query.get("cr_lang") ?? (isContainerLaunch ? "" : "english");
   const userId = query.get("cr_user_id") ?? "";
   const level = levels[levelIndex];
+  const noAudio = audioAvailability?.available === false && audioAvailability.level === level;
+  const audioLabel = noAudio ? "Audio unavailable for this level" : muted ? "Unmute audio" : "Mute audio";
   const canFind = status === "ready" || status === "correct";
-  const canSpell = status === "spelling" && pictureReady && dragging.size === 0;
+  const canSpell = status === "spelling" && pictureReady && dragging.size === 0
+    && selectedLetters.every((letter) => letter !== "?");
   const wheelsEnabled = pictureReady && (status === "awaiting-change" || status === "spelling");
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(MUTE_STORAGE_KEY, String(muted));
+    } catch (error) {
+      console.warn("Could not save the audio preference for a reload.", error);
+    }
+  }, [muted]);
+
+  useEffect(() => {
+    if (!level) return;
+    return checkLevelAudio(level, language, (available) => setAudioAvailability({ level, available }));
+  }, [level, language]);
+
+  const playTracks = (tracks: AudioTrack[], audioLevel = level) => {
+    stopAudioRef.current?.();
+    stopAudioRef.current = undefined;
+    if (muted || (audioAvailability?.available === false && audioAvailability.level === audioLevel)) {
+      tracks.forEach((track) => track.onComplete?.());
+      return;
+    }
+    stopAudioRef.current = playAudio(tracks);
+  };
+
+  const toggleMuted = () => {
+    if (noAudio) return;
+    if (!muted) {
+      stopAudioRef.current?.();
+      stopAudioRef.current = undefined;
+      if (status === "correct") setFlashLetters(true);
+    }
+    setMuted(!muted);
+  };
 
   useEffect(() => {
     let active = true;
@@ -93,7 +138,6 @@ export function App({
 
   const selectLevel = (nextIndex: number) => {
     if (nextIndex === levelIndex) return;
-    stopAudioRef.current?.();
     setLevelIndex(nextIndex);
     setWord("");
     setSelectedLetters(initialLetters(levels[nextIndex]));
@@ -108,11 +152,11 @@ export function App({
     setFlashLetters(false);
     setNarrationError("");
     setStatus("ready");
-    stopAudioRef.current = playAudio([{
+    playTracks([{
       source: `lang/${language}/audio/level-${Number(levels[nextIndex].level_id)}.mp3`,
       description: "level announcement",
       onUnavailable: () => setNarrationError("The level announcement could not be played."),
-    }]);
+    }], levels[nextIndex]);
   };
 
   const findWord = () => {
@@ -126,7 +170,6 @@ export function App({
     );
     const nextWord = candidates[selectedIndex];
 
-    stopAudioRef.current?.();
     setWord(nextWord);
     setSelectedLetters(initialLetters(level));
     setFeedback(INSTRUCTION);
@@ -141,7 +184,7 @@ export function App({
     setNarrationError("");
     setStatus(level.spinners.every((spinner) => spinner.letter_list.length === 1) ? "spelling" : "awaiting-change");
     emitGameEvent({ type: "word_presented", lang: language, level_id: level.level_id, word: nextWord }, userId);
-    stopAudioRef.current = playAudio([{
+    playTracks([{
       source: `lang/${language}/audio/words/${nextWord}.mp3`,
       description: `pronunciation for ${nextWord}`,
       onUnavailable: setAudioUnavailable,
@@ -171,10 +214,9 @@ export function App({
       setFeedback("Correct!");
       setIncorrectAttempt(0);
       setStatus("correct");
-      stopAudioRef.current?.();
       setAudioUnavailable(false);
       setNarrationError("");
-      stopAudioRef.current = playAudio([
+      playTracks([
         {
           source: `lang/${language}/audio/correct.mp3`,
           description: "correct-answer audio",
@@ -191,9 +233,8 @@ export function App({
     } else {
       setFeedback("Please try again!");
       setIncorrectAttempt((current) => current + 1);
-      stopAudioRef.current?.();
       setNarrationError("");
-      stopAudioRef.current = playAudio([{
+      playTracks([{
         source: `lang/${language}/audio/please-try-again.mp3`,
         description: "try-again audio",
         onUnavailable: () => setNarrationError("The try-again audio could not be played."),
@@ -297,9 +338,22 @@ export function App({
           ))}
         </div>
 
-        <button className="spin-button" type="button" onClick={canFind ? findWord : spell} disabled={!canFind && !canSpell}>
-          {status === "spelling" ? "Spell" : "Find a word"}
-        </button>
+        <div className="game-actions">
+          <button
+            className="audio-toggle"
+            type="button"
+            aria-label={audioLabel}
+            aria-pressed={muted}
+            title={audioLabel}
+            disabled={noAudio}
+            onClick={toggleMuted}
+          >
+            <img src={!noAudio && muted ? mutedIcon : unmutedIcon} alt="" draggable={false} />
+          </button>
+          <button className="spin-button" type="button" onClick={canFind ? findWord : spell} disabled={!canFind && !canSpell}>
+            {status === "spelling" ? "Spell" : "Find a word"}
+          </button>
+        </div>
         {narrationError && <p className="media-status" role="status">{narrationError}</p>}
         {audioUnavailable && word && (
           <p className="media-status" role="status">Audio for “{word}” is unavailable.</p>
@@ -311,49 +365,4 @@ export function App({
       </section>
     </main>
   );
-}
-
-function playAudio(tracks: AudioTrack[]): () => void {
-  let active = true;
-  let audio: HTMLAudioElement | undefined;
-  const playTrack = (index: number) => {
-    if (!active || index >= tracks.length) return;
-    const track = tracks[index];
-    let finished = false;
-    const finish = () => {
-      if (!active || finished) return;
-      finished = true;
-      track.onComplete?.();
-      playTrack(index + 1);
-    };
-    const fail = (error?: unknown) => {
-      if (!active || finished) return;
-      console.warn(`Could not play ${track.description}.`, error);
-      track.onUnavailable(true);
-      finish();
-    };
-    try {
-      const player = audio ?? new Audio();
-      audio = player;
-      player.onended = finish;
-      player.onplaying = () => {
-        if (active && !finished) track.onPlaying?.();
-      };
-      player.onerror = () => fail();
-      player.src = track.source;
-      void player.play().catch(fail);
-    } catch (error) {
-      fail(error);
-    }
-  };
-  playTrack(0);
-  return () => {
-    active = false;
-    if (audio) {
-      audio.onerror = null;
-      audio.onended = null;
-      audio.onplaying = null;
-      audio.pause();
-    }
-  };
 }

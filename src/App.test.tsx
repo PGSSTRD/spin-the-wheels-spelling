@@ -4,6 +4,8 @@ import levelsData from "../content/lang/english/levels.json";
 import { parseLevels } from "./levels";
 import { App } from "./App";
 import type { Level } from "./types";
+import mutedIcon from "../content/assets/icons/audio-muted.svg";
+import unmutedIcon from "../content/assets/icons/audio-unmuted-v2.svg";
 
 const levels = parseLevels(levelsData);
 const instruction = "Give the wheels a spin and spell a word!";
@@ -16,6 +18,12 @@ let audioPlayers: {
   onplaying: (() => void) | null;
   onerror: (() => void) | null;
 }[];
+let audioChecks: {
+  src: string;
+  onloadeddata: (() => void) | null;
+  onerror: (() => void) | null;
+}[];
+let audioCheckSources: string[];
 
 beforeEach(() => {
   delete window.ReactNativeWebView;
@@ -24,17 +32,28 @@ beforeEach(() => {
   audioPause = vi.fn();
   audioSources = [];
   audioPlayers = [];
+  audioChecks = [];
+  audioCheckSources = [];
+  sessionStorage.clear();
   vi.stubGlobal("Audio", class {
     src = "";
     onerror: (() => void) | null = null;
     onended: (() => void) | null = null;
     onplaying: (() => void) | null = null;
-    constructor() {
-      audioPlayers.push(this);
-    }
+    onloadeddata: (() => void) | null = null;
     play() {
+      if (!audioPlayers.includes(this)) audioPlayers.push(this);
       audioSources.push(this.src);
       return audioPlay();
+    }
+    load() {
+      if (this.src && !audioChecks.includes(this)) {
+        audioChecks.push(this);
+        audioCheckSources.push(this.src);
+      }
+    }
+    removeAttribute(name: string) {
+      if (name === "src") this.src = "";
     }
     pause = audioPause;
   });
@@ -78,7 +97,169 @@ function controlAnimationFrames() {
   });
 }
 
+function failAudioChecks() {
+  act(() => {
+    let check = audioChecks.at(-1);
+    while (check?.onerror) {
+      check.onerror();
+      const next = audioChecks.at(-1);
+      if (next === check) break;
+      check = next;
+    }
+  });
+}
+
 describe("manual spelling cycle", () => {
+  it("mutes every gameplay cue, keeps visual feedback, and preserves mute across levels", async () => {
+    await openGame();
+    const toggle = screen.getByRole("button", { name: "Mute audio" });
+    expect(toggle).toHaveAttribute("aria-pressed", "false");
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAccessibleName("Unmute audio");
+    expect(toggle.querySelector("img")).toHaveAttribute("src", mutedIcon);
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "1" } });
+    findWord(false, "cap");
+    const wheel = screen.getByRole("spinbutton");
+    fireEvent.keyDown(wheel, { key: "ArrowUp" });
+    fireEvent.keyDown(wheel, { key: "ArrowUp" });
+    fireEvent.click(screen.getByRole("button", { name: "Spell" }));
+    expect(wheel).toHaveClass("wheel-incorrect");
+    fireEvent.keyDown(wheel, { key: "ArrowDown" });
+    fireEvent.click(screen.getByRole("button", { name: "Spell" }));
+    expect(screen.getByRole("group", { name: "Spelling wheels" })).toHaveClass("wheels-correct");
+    expect(audioPlay).not.toHaveBeenCalled();
+    expect(screen.queryByText(/audio.*unavailable/i)).not.toBeInTheDocument();
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAccessibleName("Mute audio");
+    expect(toggle.querySelector("img")).toHaveAttribute("src", unmutedIcon);
+    expect(audioPlay).not.toHaveBeenCalled();
+    findWord(false, "map");
+    expect(audioSources).toEqual(["lang/english/audio/words/map.mp3"]);
+  });
+
+  it.each(["pronunciation", "correct", "success word"])("immediately cancels %s when muting and ignores stale callbacks", async (phase) => {
+    const warning = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    await openGame();
+    findWord();
+    if (phase !== "pronunciation") {
+      fireEvent.keyDown(screen.getByRole("spinbutton"), { key: "ArrowUp" });
+      fireEvent.click(screen.getByRole("button", { name: "Spell" }));
+      if (phase === "success word") act(() => audioPlayers[1].onended?.());
+    }
+    const player = audioPlayers.at(-1)!;
+    const { onended, onplaying, onerror } = player;
+    audioPause.mockClear();
+    const sources = [...audioSources];
+    fireEvent.click(screen.getByRole("button", { name: "Mute audio" }));
+    expect(audioPause).toHaveBeenCalledOnce();
+    act(() => { onended?.(); onplaying?.(); onerror?.(); });
+    expect(audioSources).toEqual(sources);
+    expect(warning).not.toHaveBeenCalled();
+    if (phase !== "pronunciation") {
+      expect(screen.getByRole("group", { name: "Spelling wheels" })).toHaveClass("wheels-correct");
+    }
+    fireEvent.click(screen.getByRole("button", { name: "Unmute audio" }));
+    expect(audioSources).toEqual(sources);
+  });
+
+  it("checks one clip at a time, keeps pending checks enabled, and stops at the first usable clip", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    await openGame();
+    expect(audioCheckSources).toEqual(["lang/english/audio/correct.mp3"]);
+    expect(audioPlay).not.toHaveBeenCalled();
+    for (let index = 0; index < 3; index += 1) {
+      act(() => audioChecks[index].onerror?.());
+      expect(audioChecks.filter((check) => check.src)).toHaveLength(1);
+      expect(screen.getByRole("button", { name: "Mute audio" })).toBeEnabled();
+    }
+    expect(audioCheckSources).toEqual([
+      "lang/english/audio/correct.mp3", retrySource, "lang/english/audio/level-1.mp3",
+      "lang/english/audio/words/cat.mp3",
+    ]);
+    act(() => audioChecks.at(-1)?.onloadeddata?.());
+    expect(screen.getByRole("button", { name: "Mute audio" })).toBeEnabled();
+    expect(audioChecks).toHaveLength(4);
+    expect(audioChecks.every((check) => check.src === "" && check.onerror === null)).toBe(true);
+  });
+
+  it("only probes one shared clip when it is usable, even in the largest level", async () => {
+    await openGame([levels[4]]);
+    expect(audioChecks).toHaveLength(1);
+    act(() => audioChecks[0].onloadeddata?.());
+    expect(audioChecks).toHaveLength(1);
+    expect(audioPlay).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "Mute audio" })).toBeEnabled();
+  });
+
+  it("disables only after every clip fails, rechecks new levels and ignores stale results", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    await openGame();
+    const staleSuccess = audioChecks[0].onloadeddata;
+    failAudioChecks();
+    expect(audioCheckSources).toEqual([
+      "lang/english/audio/correct.mp3", retrySource, "lang/english/audio/level-1.mp3",
+      ...levels[0].word_list.map((word) => `lang/english/audio/words/${word}.mp3`),
+    ]);
+    const unavailable = screen.getByRole("button", { name: "Audio unavailable for this level" });
+    expect(unavailable).toBeDisabled();
+    expect(unavailable.querySelector("img")).toHaveAttribute("src", unmutedIcon);
+    fireEvent.click(unavailable);
+    expect(unavailable).toHaveAttribute("aria-pressed", "false");
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "1" } });
+    expect(audioSources).toEqual(["lang/english/audio/level-2.mp3"]);
+    expect(screen.getByRole("button", { name: "Mute audio" })).toBeEnabled();
+    failAudioChecks();
+    act(() => staleSuccess?.());
+    expect(screen.getByRole("button", { name: "Audio unavailable for this level" })).toBeDisabled();
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "0" } });
+    act(() => audioChecks.at(-1)?.onloadeddata?.());
+    expect(screen.getByRole("button", { name: "Mute audio" })).toBeEnabled();
+  });
+
+  it("does not mistake autoplay rejection for absent audio", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    await openGame();
+    act(() => audioChecks[0].onloadeddata?.());
+    audioPlay.mockRejectedValueOnce(new DOMException("Interaction required", "NotAllowedError"));
+    findWord();
+    expect(await screen.findByText("Audio for “cat” is unavailable.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Mute audio" })).toBeEnabled();
+  });
+
+  it.each([false, true])("keeps mute preference=%s through an unavailable level and still allows silent spelling", async (muted) => {
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    await openGame();
+    if (muted) fireEvent.click(screen.getByRole("button", { name: "Mute audio" }));
+    failAudioChecks();
+    expect(screen.getByRole("button", { name: "Audio unavailable for this level" })).toHaveAttribute("aria-pressed", String(muted));
+    findWord();
+    fireEvent.keyDown(screen.getByRole("spinbutton"), { key: "ArrowUp" });
+    fireEvent.click(screen.getByRole("button", { name: "Spell" }));
+    expect(screen.getByRole("group", { name: "Spelling wheels" })).toHaveClass("wheels-correct");
+    expect(audioPlay).not.toHaveBeenCalled();
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "1" } });
+    act(() => audioChecks.at(-1)?.onloadeddata?.());
+    expect(screen.getByRole("button", { name: muted ? "Unmute audio" : "Mute audio" })).toBeEnabled();
+    expect(audioSources).toEqual(muted ? [] : ["lang/english/audio/level-2.mp3"]);
+  });
+
+  it.each(["navigate", "reload"])("restores mute only on reload, not a fresh %s launch", async (type) => {
+    sessionStorage.setItem("spin-the-wheels-muted", "true");
+    vi.stubGlobal("performance", { now: () => 0, getEntriesByType: () => [{ type }] });
+    await openGame();
+    expect(screen.getByRole("button", { name: type === "reload" ? "Unmute audio" : "Mute audio" })).toBeEnabled();
+    expect(sessionStorage.getItem("spin-the-wheels-muted")).toBe(String(type === "reload"));
+  });
+
+  it("logs blocked preference storage without preventing mute", async () => {
+    const warning = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => { throw new DOMException("Blocked", "SecurityError"); });
+    await openGame();
+    fireEvent.click(screen.getByRole("button", { name: "Mute audio" }));
+    expect(screen.getByRole("button", { name: "Unmute audio" })).toBeEnabled();
+    expect(warning).toHaveBeenCalledWith("Could not save the audio preference for a reload.", expect.any(DOMException));
+  });
+
   it("starts silently without instruction playback, errors, or a retry button", async () => {
     const frame = controlAnimationFrames();
     await openGame();
@@ -334,22 +515,38 @@ describe("manual spelling cycle", () => {
     expect(random).toHaveBeenCalledTimes(expected.length);
   });
 
-  it("tracks placeholders independently and rejects a submission with a remaining question mark", async () => {
-    await openGame();
-    fireEvent.change(screen.getByRole("combobox"), { target: { value: "2" } });
+  it.each([2, 4])("requires every adjustable spinner to be chosen in level index %s before submitting", async (levelIndex) => {
+    const random = vi.fn(() => 0);
+    await openGame(levels, random);
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: String(levelIndex) } });
     findWord();
-    const first = screen.getByRole("spinbutton", { name: "First letter" });
-    const last = screen.getByRole("spinbutton", { name: "Last letter" });
-    fireEvent.keyDown(first, { key: "ArrowUp" });
-    fireEvent.click(screen.getByRole("button", { name: "Spell" }));
-    expect(screen.getByRole("status")).toHaveTextContent("Please try again!");
-    expect(last).toHaveAttribute("aria-valuetext", "Not selected");
-    expect(first).not.toHaveClass("wheel-incorrect");
-    expect(last).toHaveClass("wheel-incorrect");
-    fireEvent.keyDown(last, { key: "ArrowDown" }); // t, last configured letter
-    expect(last).not.toHaveClass("wheel-incorrect");
+    const playCount = audioPlay.mock.calls.length;
+    const positions = [2, 0, 1].filter((index) => levels[levelIndex].spinners[index].letter_list.length > 1);
+    for (const [chosen, index] of positions.entries()) {
+      const label = `${["First", "Middle", "Last"][index]} letter`;
+      const wheel = screen.getByRole("spinbutton", { name: label });
+      const steps = levels[levelIndex].spinners[index].letter_list.indexOf("cat"[index]) + 1;
+      for (let step = 0; step < steps; step += 1) fireEvent.keyDown(wheel, { key: "ArrowUp" });
+      const button = screen.getByRole("button", { name: "Spell" });
+      if (chosen < positions.length - 1) {
+        expect(button).toBeDisabled();
+        fireEvent.click(button);
+        expect(screen.getByRole("status")).toHaveTextContent(instruction);
+        expect(screen.getByText("cat")).toBeInTheDocument();
+        expect(audioPlay).toHaveBeenCalledTimes(playCount);
+        expect(random).toHaveBeenCalledOnce();
+        expect(document.querySelector(".wheel-incorrect")).toBeNull();
+      } else {
+        expect(button).toBeEnabled();
+      }
+    }
     fireEvent.click(screen.getByRole("button", { name: "Spell" }));
     expect(screen.getByRole("status")).toHaveTextContent("Correct!");
+    findWord(false, "cam");
+    expect(screen.getByRole("button", { name: "Find a word" })).toBeDisabled();
+    for (const wheel of screen.getAllByRole("spinbutton")) {
+      expect(wheel).toHaveAttribute("aria-valuetext", "Not selected");
+    }
   });
 
   it("prevents submission during a drag and enables it after pointer cancellation", async () => {
@@ -418,11 +615,11 @@ describe("manual spelling cycle", () => {
     await openGame();
     const wheels = screen.getByRole("group", { name: "Spelling wheels" });
     const button = screen.getByRole("button", { name: "Find a word" });
-    expect(wheels.nextElementSibling).toBe(button);
+    expect(wheels.nextElementSibling).toBe(button.parentElement);
     findWord(true);
     const picture = screen.getByRole("region", { name: "Picture for cat" });
     expect(picture.nextElementSibling).toBe(wheels);
-    expect(wheels.nextElementSibling).toBe(button);
+    expect(wheels.nextElementSibling).toBe(button.parentElement);
     expect(screen.getByRole("img", { name: "Picture of cat is unavailable" })).toBeInTheDocument();
     fireEvent.keyDown(screen.getByRole("spinbutton"), { key: "ArrowUp" });
     expect(button).toBeEnabled();

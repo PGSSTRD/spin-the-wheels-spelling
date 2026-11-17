@@ -1,5 +1,19 @@
 import "@testing-library/jest-dom/vitest";
 
+// React uses this constructor's presence to choose unprefixed animation events.
+window.AnimationEvent ??= class extends Event {
+  readonly animationName: string;
+  readonly elapsedTime: number;
+  readonly pseudoElement: string;
+
+  constructor(type: string, init: AnimationEventInit = {}) {
+    super(type, init);
+    this.animationName = init.animationName ?? "";
+    this.elapsedTime = init.elapsedTime ?? 0;
+    this.pseudoElement = init.pseudoElement ?? "";
+  }
+};
+
 HTMLElement.prototype.setPointerCapture ??= () => undefined;
 HTMLElement.prototype.hasPointerCapture ??= () => false;
 

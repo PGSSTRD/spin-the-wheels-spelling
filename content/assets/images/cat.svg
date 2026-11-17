@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" fill="currentColor">
+  <!-- Ears -->
+  <polygon points="28,48 34,16 54,36" />
+  <polygon points="92,48 86,16 66,36" />
+  <!-- Head & Body -->
+  <circle cx="60" cy="54" r="26" />
+  <ellipse cx="60" cy="88" rx="22" ry="20" />
+  <!-- Tail -->
+  <path d="M80,96 Q108,88 102,62" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" />
+  <!-- Eyes -->
+  <circle cx="50" cy="52" r="3" fill="#ffffff" />
+  <circle cx="70" cy="52" r="3" fill="#ffffff" />
+  <!-- Nose -->
+  <polygon points="57,59 63,59 60,63" fill="#ffffff" />
+</svg>

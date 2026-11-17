@@ -1,6 +1,14 @@
 # Spin the Wheels
 
 React + TypeScript implementation of the three-letter MVP.
+The supplied Lexend Latin regular WOFF2 is loaded locally throughout the UI,
+including headings, wheels, target words, and controls, with a system
+sans-serif fallback and swap display. No external font service is used.
+Spinner letters are optically centered for Lexend without changing wheel
+dimensions or dragging distances.
+The level selector has no separate visible label; its accessible name remains
+"Choose level". Its 36px height and responsive 16-20px text complement the title,
+with bottom alignment to the title area and its existing right-edge alignment.
 
 ## Play
 
@@ -17,7 +25,9 @@ button's height; the mute slash stays within that circle. The active unmuted
 asset is `audio-unmuted-v2.svg`, which omits the circle while preserving the
 same speaker geometry, position, and image dimensions. The original circular
 unmuted SVG is retained but unused.
-Black speaker means audio is on; black slashed speaker means muted.
+Green speaker (`#2f7642`, matching active wheel letters) means audio is on;
+red slashed speaker (`#e42e2e`, matching wrong-letter flashes) means muted.
+Unavailable audio retains a neutral gray icon.
 Select it to toggle. Muting stops current playback immediately and silences
 subsequent word, level, correct, and retry clips without stopping gameplay.
 Gold flashes start immediately when audio is muted; red flashes are unchanged.
@@ -48,8 +58,9 @@ After the picture (or its fallback) appears, drag a multi-letter
 wheel up/down by 40px per letter, or focus it and use the arrow keys. Letters
 wrap in their configured order; the question mark disappears after the first
 step and returns only for a new target.
-Wheel gestures suppress browser text selection and native text dragging;
-text elsewhere on the page remains selectable.
+Browser text selection is disabled throughout the game card to prevent
+accidental highlighting. Wheel gestures also suppress native text dragging.
+Keyboard focus, level selection, and pointer/touch wheel controls are unchanged.
 
 After a letter changes, the button reads **Spell**, but remains disabled until
 every adjustable wheel has a letter selected (no `?` remains). Fixed letters
@@ -65,8 +76,14 @@ letters flash gold together three times over 1.5 seconds (0.25 seconds gold, the
 `lang/english/audio/correct.mp3` plays to completion. The gold flashes then
 start when `lang/english/audio/words/<word>.mp3` begins playing.
 Audio errors are reported non-blockingly; remaining feedback still runs.
-**Find a word** starts a new cycle, stops pending audio, and clears any remaining
-flashes. Changing levels also cancels the sequence.
+After each Spell submission, the primary button stays disabled until both
+the feedback audio and all letter flashes finish. Muted or unavailable audio
+requires waiting only for the flashes. Muting during feedback stops its audio
+but does not skip the remaining visual feedback. After a wrong answer, wheels
+remain editable: editing clears the red flashes as before, while the button
+still waits for any retry audio. Changing levels cancels feedback and its lock.
+After successful feedback completes, **Find a word** starts a new cycle, stops
+any other pending audio, and clears the previous feedback.
 The next target never repeats the current word unless the
 level contains only one word. Changing levels resets the attempt.
 As clarified, **Find a word** continues to pronounce the word on every use;
@@ -99,10 +116,47 @@ compatibility. All 40 word clips have been checked for file-mode loading.
 When replacing these recordings, check playback from the standalone file
 as well as through the development server; successful HTTP playback alone
 does not establish file-mode compatibility.
-Place word images at `assets/images/<word>.png` in the standalone package;
-missing images use the existing non-blocking fallback.
+Place word images at `content/assets/images/<word>.svg` or `<word>.jpg`
+(for example, `cat.svg`). The game tries SVG first, then JPG only if SVG fails
+to load or decode. Only after both fail does it show the monochrome painting;
+it does not probe other formats or require an image index.
+Development serves images under `assets/images/`; the build copies the image
+folder to that same path in the standalone package. Images can also be added
+directly to that folder in a standalone package.
+The picture frame is always visible, remaining empty before target selection
+and after a level change. Word images fit inside 80% of both its height and
+width while preserving their aspect ratio. Missing or invalid images use a
+grayscale rendering of the supplied `painting.svg`, bundled locally, with the
+same sizing. The fallback retains an accessible description but no visible
+message; gameplay remains usable. The original painting SVG is not modified.
 The original celebration sound is retained at `content/audio/triumphant.wav`
 for future use, but is not played or bundled by the current game.
+
+## Asset licensing
+
+[content/licenses.json](content/licenses.json) records the three original
+speaker SVGs, the supplied Lexend font, both supplied image SVGs, all 49 MP3
+recordings, and the generated fanfare WAV using the other spelling project's
+manifest format. This includes retained unused source assets.
+The speaker SVGs' CC0-1.0 dedication was approved on 2026-11-17.
+Lexend is OFL-1.1; its full supplied copyright/license notice is retained at
+[content/assets/fonts/OFL-Lexend.txt](content/assets/fonts/OFL-Lexend.txt).
+Paths omit the source `content/` prefix; active icons are inlined in the
+application bundle. The build emits the font unchanged under `assets/fonts/`,
+copies the OFL notice alongside it, and includes the manifest under
+`content/licenses.json`.
+The MP3 entries record the contributor-reported ElevenLabs free-plan origin
+and supplied restrictions, including no commercial license and outstanding
+distribution approval. The manifest alone does not satisfy the reported
+publication-title attribution requirement. The guidance check date is inherited
+from the supplied previous-project record, not a new verification.
+The supplied painting SVG is recorded as `NOASSERTION`: its original source
+and public-domain dedication have not been verified. A search assistant's
+description alone does not establish its licensing or redistribution rights.
+The cat SVG is also `NOASSERTION` because its provenance/license is unknown.
+The original generated fanfare is recorded separately from ElevenLabs as
+`NOASSERTION` pending an explicit license decision; the speaker icons' CC0
+dedication does not automatically apply to it.
 
 ## Validate
 

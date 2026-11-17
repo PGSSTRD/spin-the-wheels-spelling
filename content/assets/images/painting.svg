@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 180" width="240" height="180">
+  <!-- Outer frame -->
+  <rect x="20" y="15" width="200" height="150" rx="4" fill="#8b5a2b" stroke="#5c3a1a" stroke-width="4"/>
+  <!-- Inner mat -->
+  <rect x="34" y="29" width="172" height="122" fill="#f5f0e6"/>
+  <!-- Canvas background (sky) -->
+  <rect x="44" y="39" width="152" height="102" fill="#87ceeb"/>
+  <!-- Sun -->
+  <circle cx="162" cy="68" r="14" fill="#ffd166"/>
+  <!-- Distant hill -->
+  <path d="M44 115 Q95 85 145 115 T196 112 L196 141 L44 141 Z" fill="#6ab04c"/>
+  <!-- Foreground hill -->
+  <path d="M44 122 Q115 102 196 125 L196 141 L44 141 Z" fill="#3b7a2a"/>
+</svg>

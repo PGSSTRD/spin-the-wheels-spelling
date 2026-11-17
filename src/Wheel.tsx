@@ -7,6 +7,7 @@ interface WheelProps {
   label: string;
   enabled: boolean;
   incorrectAttempt?: number;
+  onFlashEnd?: () => void;
   onChange: (value: string) => void;
   onDraggingChange: (dragging: boolean) => void;
 }
@@ -14,7 +15,7 @@ interface WheelProps {
 const DRAG_STEP = 40;
 const LETTER_HEIGHT = 76;
 
-export function Wheel({ letters, value, label, enabled, incorrectAttempt = 0, onChange, onDraggingChange }: WheelProps) {
+export function Wheel({ letters, value, label, enabled, incorrectAttempt = 0, onFlashEnd, onChange, onDraggingChange }: WheelProps) {
   const [offset, setOffset] = useState(0);
   const drag = useRef<{ pointerId: number; y: number; value: string } | null>(null);
   const editable = enabled && letters.length > 1;
@@ -96,7 +97,13 @@ export function Wheel({ letters, value, label, enabled, incorrectAttempt = 0, on
         style={{ transform: `translateY(${-LETTER_HEIGHT + offset}px)` }}
       >
         {[previous, value, next].map((letter, index) => (
-          <span className="wheel-letter" key={index === 1 ? `selected-${incorrectAttempt}` : index}>{letter}</span>
+          <span
+            className="wheel-letter"
+            key={index === 1 ? `selected-${incorrectAttempt}` : index}
+            onAnimationEnd={index === 1 ? onFlashEnd : undefined}
+          >
+            {letter}
+          </span>
         ))}
       </div>
     </div>

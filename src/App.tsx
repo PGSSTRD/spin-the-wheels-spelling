@@ -6,10 +6,17 @@ import { Wheel } from "./Wheel";
 import { checkLevelAudio, playAudio, type AudioTrack } from "./audio";
 import mutedIcon from "../content/assets/icons/audio-muted.svg";
 import unmutedIcon from "../content/assets/icons/audio-unmuted-v2.svg";
+import paintingFallback from "../content/assets/images/painting.svg";
 
 interface AppProps {
   loadLevelData?: (language: string) => Promise<Level[]>;
   random?: () => number;
+}
+
+interface SpellFeedback {
+  id: number;
+  audioPending: boolean;
+  pendingLetters: number[];
 }
 
 const INSTRUCTION = "Give the wheels a spin and spell a word!";
@@ -44,15 +51,17 @@ export function App({
   const [pictureReady, setPictureReady] = useState(false);
   const [dragging, setDragging] = useState<Set<number>>(new Set());
   const [cycle, setCycle] = useState(0);
-  const [imageUnavailable, setImageUnavailable] = useState(false);
+  const [imageKind, setImageKind] = useState<"svg" | "jpg" | "fallback">("svg");
   const [audioUnavailable, setAudioUnavailable] = useState(false);
   const [correctAudioUnavailable, setCorrectAudioUnavailable] = useState(false);
   const [flashLetters, setFlashLetters] = useState(false);
+  const [spellFeedback, setSpellFeedback] = useState<SpellFeedback>();
   const [narrationError, setNarrationError] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [muted, setMuted] = useState(initialMuted);
   const [audioAvailability, setAudioAvailability] = useState<{ level: Level; available: boolean }>();
   const stopAudioRef = useRef<(() => void) | undefined>(undefined);
+  const feedbackSequenceRef = useRef(0);
   const gameStartedRef = useRef(false);
   const loadLevelDataRef = useRef(loadLevelData);
 
@@ -63,8 +72,10 @@ export function App({
   const level = levels[levelIndex];
   const noAudio = audioAvailability?.available === false && audioAvailability.level === level;
   const audioLabel = noAudio ? "Audio unavailable for this level" : muted ? "Unmute audio" : "Mute audio";
-  const canFind = status === "ready" || status === "correct";
-  const canSpell = status === "spelling" && pictureReady && dragging.size === 0
+  const feedbackPending = spellFeedback !== undefined
+    && (spellFeedback.audioPending || spellFeedback.pendingLetters.length > 0);
+  const canFind = !feedbackPending && (status === "ready" || status === "correct");
+  const canSpell = !feedbackPending && status === "spelling" && pictureReady && dragging.size === 0
     && selectedLetters.every((letter) => letter !== "?");
   const wheelsEnabled = pictureReady && (status === "awaiting-change" || status === "spelling");
 
@@ -96,6 +107,7 @@ export function App({
     if (!muted) {
       stopAudioRef.current?.();
       stopAudioRef.current = undefined;
+      setSpellFeedback((current) => current ? { ...current, audioPending: false } : current);
       if (status === "correct") setFlashLetters(true);
     }
     setMuted(!muted);
@@ -146,10 +158,11 @@ export function App({
     setPictureReady(false);
     setDragging(new Set());
     setCycle((current) => current + 1);
-    setImageUnavailable(false);
+    setImageKind("svg");
     setAudioUnavailable(false);
     setCorrectAudioUnavailable(false);
     setFlashLetters(false);
+    setSpellFeedback(undefined);
     setNarrationError("");
     setStatus("ready");
     playTracks([{
@@ -177,10 +190,11 @@ export function App({
     setPictureReady(false);
     setDragging(new Set());
     setCycle((current) => current + 1);
-    setImageUnavailable(false);
+    setImageKind("svg");
     setAudioUnavailable(false);
     setCorrectAudioUnavailable(false);
     setFlashLetters(false);
+    setSpellFeedback(undefined);
     setNarrationError("");
     setStatus(level.spinners.every((spinner) => spinner.letter_list.length === 1) ? "spelling" : "awaiting-change");
     emitGameEvent({ type: "word_presented", lang: language, level_id: level.level_id, word: nextWord }, userId);
@@ -196,6 +210,7 @@ export function App({
     setSelectedLetters((current) => current.map((value, position) => position === index ? letter : value));
     setFeedback(INSTRUCTION);
     setIncorrectAttempt(0);
+    setSpellFeedback((current) => current ? { ...current, pendingLetters: [] } : current);
     setStatus("spelling");
   };
 
@@ -210,7 +225,17 @@ export function App({
 
   const spell = () => {
     if (!canSpell) return;
-    if (selectedLetters.join("") === word) {
+    const correct = selectedLetters.join("") === word;
+    const id = ++feedbackSequenceRef.current;
+    setSpellFeedback({
+      id,
+      audioPending: true,
+      pendingLetters: selectedLetters.flatMap((letter, index) => correct || letter !== word[index] ? [index] : []),
+    });
+    const completeAudio = () => {
+      setSpellFeedback((current) => current?.id === id ? { ...current, audioPending: false } : current);
+    };
+    if (correct) {
       setFeedback("Correct!");
       setIncorrectAttempt(0);
       setStatus("correct");
@@ -227,7 +252,10 @@ export function App({
           description: `pronunciation for ${word}`,
           onUnavailable: setAudioUnavailable,
           onPlaying: () => setFlashLetters(true),
-          onComplete: () => setFlashLetters(true),
+          onComplete: () => {
+            setFlashLetters(true);
+            completeAudio();
+          },
         },
       ]);
     } else {
@@ -238,8 +266,15 @@ export function App({
         source: `lang/${language}/audio/please-try-again.mp3`,
         description: "try-again audio",
         onUnavailable: () => setNarrationError("The try-again audio could not be played."),
+        onComplete: completeAudio,
       }]);
     }
+  };
+
+  const completeFlash = (id: number, index: number) => {
+    setSpellFeedback((current) => current?.id === id
+      ? { ...current, pendingLetters: current.pendingLetters.filter((position) => position !== index) }
+      : current);
   };
 
   if (status === "loading") {
@@ -277,7 +312,6 @@ export function App({
             <h1>Spin the Wheels</h1>
           </div>
           <label className="level-picker">
-            <span>Level</span>
             <select
               aria-label="Choose level"
               value={levelIndex}
@@ -300,27 +334,33 @@ export function App({
           )}
         </div>
 
-        {word && (
-          <section className="picture-panel" aria-label={`Picture for ${word}`} key={`${cycle}-${word}`}>
-            {imageUnavailable ? (
-              <div className="media-fallback" role="img" aria-label={`Picture of ${word} is unavailable`}>
-                <span aria-hidden="true">🖼️</span>
-                <p>Picture for <strong>{word}</strong> is unavailable.</p>
-              </div>
+        <section className="picture-panel" aria-label={word ? `Picture for ${word}` : "Word picture"} key={`${cycle}-${word}`}>
+          {word && (
+            imageKind === "fallback" ? (
+              <img
+                className="media-fallback"
+                src={paintingFallback}
+                alt={`Picture of ${word} is unavailable`}
+              />
             ) : (
               <img
+                key={imageKind}
                 className="word-picture"
-                src={`assets/images/${word}.png`}
+                src={`assets/images/${word}.${imageKind}`}
                 alt={word}
                 onLoad={() => setPictureReady(true)}
                 onError={() => {
-                  setImageUnavailable(true);
-                  setPictureReady(true);
+                  if (imageKind === "svg") {
+                    setImageKind("jpg");
+                  } else {
+                    setImageKind("fallback");
+                    setPictureReady(true);
+                  }
                 }}
               />
-            )}
-          </section>
-        )}
+            )
+          )}
+        </section>
 
         <div className={`wheels${!word ? " wheels-awaiting-word" : ""}${status === "correct" && flashLetters ? " wheels-correct" : ""}`} role="group" aria-label="Spelling wheels">
           {level.spinners.map((spinner, index) => (
@@ -331,6 +371,7 @@ export function App({
                 label={`${["First", "Middle", "Last"][index]} letter${spinner.letter_list.length === 1 ? `: ${spinner.letter_list[0]} (fixed)` : ""}`}
                 enabled={wheelsEnabled}
                 incorrectAttempt={selectedLetters[index] !== word[index] ? incorrectAttempt : 0}
+                onFlashEnd={spellFeedback ? () => completeFlash(spellFeedback.id, index) : undefined}
                 onChange={(letter) => changeLetter(index, letter)}
                 onDraggingChange={(active) => changeDragging(index, active)}
               />

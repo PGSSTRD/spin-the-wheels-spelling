@@ -1,124 +1,261 @@
 # Spin The Wheels — Product Requirements Document
 
-**Status:** Draft — plain-browser English default specified; remaining product decisions need confirmation
-**Last updated:** 2026-11-16
-**Product scope:** MVP Implementation only
+**Status:** Synchronized with approved gameplay and UI through 2026-11-17; release integration, licensing, and device validation remain outstanding
+**Last updated:** 2026-11-17
+**Product scope:** MVP-derived game with explicitly approved manual-spelling changes
 
 ## 1. Purpose
 
-Define the user-visible product behavior for a three-letter spelling game intended for young literacy learners. The game presents a configured word by spinning three letter wheels to a correctly spelled target, then showing the word's picture and playing its pronunciation.
+Provide a local, offline three-letter English spelling game for young literacy
+learners. The player finds a target, sees its word and picture, hears its
+pronunciation, and manually sets letter wheels to spell that exact target.
 
-This document, together with [DEVSPEC.md](./DEVSPEC.md), [UISPEC.md](./UISPEC.md), and [TESTSPEC.md](./TESTSPEC.md), is the source of truth for a new implementation. Requirement IDs are stable references for the other specifications.
+This document, [DEVSPEC.md](./DEVSPEC.md), [UISPEC.md](./UISPEC.md), and
+[TESTSPEC.md](./TESTSPEC.md) define the current product for recreation and testing
+from scratch. Stable requirement IDs link requirements to acceptance tests.
+
+The original GameSpecBrief MVP described automatically settling wheels.
+Subsequent user-approved changes deliberately replace that interaction with
+manual spelling, evaluation, and feedback. These approved requirements take
+precedence over the original automatic-spin proposals; they are not claims
+that the source brief itself prescribed the later design.
 
 ## 2. Audience and learning objective
 
 - **Primary user:** a child practicing English letter order and word recognition.
-- **Supporting user:** an educator, caregiver, or content creator who supplies a level's word and media data.
-- **Pedagogical objective (source):** put letters in order to spell a word, using independently spinning letter slots.
+- **Supporting user:** an educator, caregiver, or content creator supplying
+  valid level data and appropriately licensed local media.
+- **Objective:** match three ordered letters to a displayed target, using its
+  picture and pronunciation as reinforcement.
 
 ## 3. Scope
 
 ### In scope
 
-- Three fixed letter positions/wheels for three-letter English words.
-- A configured letter set for each position; the middle position is vowel-only.
-- Loading the level and spellable word list from JSON.
-- A user action that randomly chooses a target word, animates the wheels, and settles on the target's letters.
-- Display of the spelled word's picture and playback of its pronunciation.
-- English-only level content.
-- Compatibility with the Curious Reader offline WebView and its standalone content packaging/reporting contract, as specified in DEVSPEC.
+- Three letter positions, configurable choices, fixed single-letter wheels,
+  and a vowel-only middle position.
+- Five supplied levels, selected manually; JSON-defined word and letter sets.
+- Random target selection without immediately repeating the current target
+  when the level offers an alternative.
+- Manual pointer/touch and keyboard wheel movement, explicit spelling checks,
+  retry feedback, correct-answer feedback, and a feedback-completion lock.
+- Local word images, recorded narration, mute control, bundled Lexend font,
+  persistent picture space, and an asset-license inventory.
+- Standalone `file://` operation and an optional Curious Reader reporting bridge.
 
 ### Out of scope
 
-The following are explicitly not MVP requirements, because they appear only in other implementation tiers or are not specified as MVP behavior:
-
-- Manually changing a single wheel/letter.
-- Showing a confused character or playing gibberish for a non-word.
-- Advancing to another level after completing a proportion of the word list.
-- Flick/velocity-based wheel operation.
-- Words longer than three letters.
-- Scoring, hints, user accounts, leaderboards, a level editor, or network-backed features.
+- Automatic wheel-solving, flick/velocity-based operation, or randomized
+  movement that reveals the answer by setting the wheels.
+- Automatic level advancement, completion thresholds, scoring, hints,
+  leaderboards, accounts, a level editor, or network-backed gameplay.
+- Words longer than three letters, a confused character, or gibberish narration.
+- Startup instruction playback, a Play instructions control, or the retained
+  generated fanfare.
+- Automatic image indexing or probing formats beyond SVG and JPG.
 
 ## 4. Product requirements
 
-### PRD-01 — Three-position spelling game
+### PRD-01 — Three-position manual spelling
 
-The playable screen MUST present exactly three ordered letter positions. The settled letters, read left-to-right, MUST form the selected target word.
+- Present exactly three ordered wheels, each using its own configured letters.
+- Fixed wheels show their sole letter. Adjustable wheels initially show `?`
+  and remain inactive until a target's picture or fallback is ready.
+- Finding a word MUST NOT move the wheels to its answer.
+- On the first actual adjustable-letter change, offer **Spell**. It remains
+  disabled until every adjustable wheel has a letter, the picture is ready,
+  no wheel is being dragged, and previous submission feedback is complete.
+- Compare the complete selection to the exact target. Another configured word
+  is incorrect if it is not the selected target.
+- Correct spelling locks the wheels until a new target or level. An incorrect
+  answer preserves the target and letters for retry; editing clears retry
+  feedback without choosing another target.
+- An all-fixed level can offer Spell immediately after picture readiness.
 
-### PRD-02 — Configured letter sets and vowel constraint
+### PRD-02 — Configured letter sets and vowels
 
-Each position MUST use its own configured letter set. The middle position MUST contain only vowels and MUST settle on a vowel. The MVP's vowel set is provisionally `a, e, i, o, u`; see Open Questions.
+Use the configured order, wrapping at both ends. The accepted middle vowels
+are `a, e, i, o, u`, excluding `y`. Fixed middle wheels obey the same constraint.
+Displayed letters are uppercase; comparisons use normalized configured letters.
+Source validation and the complete five-level catalog are defined in DEVSPEC.
+Level 5 has three adjustable wheels, including the middle `a/i` wheel.
 
-### PRD-03 — Random target selection and spin
+### PRD-03 — Target selection, retries, and levels
 
-When the player activates the word-selection mechanism, the game MUST select a word from the loaded level's configured spellable words and animate the three wheels before settling on that word's letters. A second activation MUST NOT interrupt an in-progress spin. The next selection is available once the current result is presented.
+- **Find a word** is available initially and after completed correct feedback.
+  Choose from the current level's words, excluding the current target if the
+  list contains more than one word. A single-word level may repeat.
+- Choose uniformly among the remaining candidates with a controllable random
+  seam for testing. This is not a no-repeat-until-exhaustion bag.
+- Show the new target and reset adjustable wheels to `?`, retaining fixed
+  letters. The placeholder cannot be selected again during that word cycle.
+- Incorrect submissions do not change targets. Start a new cycle only through
+  an enabled Find a word action or an actual level change.
+- Selecting another level resets the attempt, feedback, target, and wheels.
+  Selecting the current level does nothing. Do not advance levels automatically.
 
-The source does not specify whether a target may repeat. The initial proposed behavior is uniform random selection with replacement; this is a decision to confirm.
+### PRD-04 — Pictures, narration, and evaluation feedback
 
-### PRD-04 — Word result, picture, and pronunciation
+- Show the target word above a persistent picture frame, with wheels and the
+  primary action below. Keep the frame empty before selection and after a
+  level reset.
+- For a target, try its SVG, then its JPG only if SVG fails. If both fail,
+  show a grayscale painting fallback without an emoji or visible error
+  sentence. Retain an accessible unavailable-picture description.
+- Center the complete image inside 80% of both frame dimensions, preserving
+  aspect ratio without cropping or stretching.
+- Find a word pronounces the target once. Correct spelling plays the
+  correct-answer clip fully, then pronounces the same target.
+- Correct feedback flashes all three selected letters gold three times.
+  Start these flashes when success pronunciation actually starts, or on its
+  completion/failure fallback if no playing event occurs.
+- Incorrect spelling plays the retry clip while only mismatched letters
+  flash red three times.
+- After either submission, the primary button MUST remain disabled until
+  both feedback audio and all active letter flashes have finished. If audio
+  is muted/unavailable, wait only for flashes.
+- Wrong-answer wheels remain editable. Editing cancels their red feedback,
+  but the button still waits for any ongoing retry audio. Level changes
+  cancel feedback and its lock.
+- Missing/corrupt media or denied playback must not fabricate success or
+  permanently block the attempt. Report genuine audio failures non-blockingly.
 
-After the wheels settle, the game MUST present the correctly spelled target, display its associated picture, and play its associated pronunciation. A media loading or playback failure MUST NOT prevent the letters and word from being shown or prevent a later word selection.
+### PRD-05 — Level and content data
 
-### PRD-05 — Level data
+Load all levels from one local English JSON array. Each level defines its ID,
+three ordered spinner definitions, and a non-empty spellable word list.
+Infer image and recording filenames from the target; no per-word media map
+or image index is required. Missing individual media is permitted at runtime
+and uses the specified fallback, whereas malformed level data is blocking.
 
-The game MUST load a level identifier, three spinner letter sets, and a word list from JSON. Every configured word MUST be spellable using the letters in the corresponding positions. Each word MUST have associated image and audio assets. The canonical data shape and validation rules are defined in DEVSPEC.
+The current catalog has five levels and 40 unique configured words; DEVSPEC
+contains the full catalog and exact validation rules, including the difference
+between case-normalized spinner letters and strictly lowercase source words.
 
-### PRD-06 — English-only content
+### PRD-06 — English launch behavior
 
-The MVP MUST use English words, letters, images, and pronunciations. The launch language is read from the Curious Reader `cr_lang` query parameter. In a plain browser, if that parameter is absent, the game MUST default to `english`; a Curious Reader container launch MUST provide `cr_lang`, and its absence MUST be treated as a configuration error. Unsupported language codes MUST produce an explicit error.
+Support `cr_lang=english`. In a plain browser, an absent language parameter
+defaults to `english`. A Curious Reader bridge launch must supply `cr_lang`;
+absence is a configuration error. Unsupported codes produce an explicit error
+without silently substituting another language.
 
-### PRD-07 — Offline/container operation
+### PRD-07 — Offline operation and deployment
 
-The MVP MUST reach a playable state from a local `file://` entry point without network access. No external service may be necessary for startup, gameplay, media, or reporting. All runtime assets MUST be local and referenced relatively. Detailed requirements are in DEVSPEC.
+Reach playable ready or an explicit local-data error from a local `file://`
+entry without an external service. Runtime media, data, font, and UI assets
+must be local; references must not depend on a filesystem-root URL.
 
-## 5. User journey and observable behavior
+The current build produces a combined standalone directory. Curious Reader
+engine/language ZIP separation, agreed catalog identifiers, and actual
+container delivery remain release obligations, not already completed features.
+Preserve the ThirdPartySpec 10-second offline startup acceptance budget; a
+never-completing XHR currently has no enforced timeout and is a known gap.
 
-1. The game opens and loads its local level data and assets.
-2. While loading, the UI indicates progress or a loading state and does not offer a playable selection action.
-3. If level data is invalid or unavailable, the UI shows an understandable blocking error; it does not display a fabricated target.
-4. Once ready, the player activates the word-selection mechanism.
-5. The three wheels animate and settle on letters spelling the selected word.
-6. The word and picture are shown and the pronunciation is played (subject to browser audio permission and asset availability).
-7. The result remains visible until the player starts another selection.
-8. A failed image or audio asset produces a non-blocking fallback/status and does not crash the game.
+### PRD-08 — Audio control and bounded availability checks
 
-The mechanism's visual form and exact label are not specified by the source. UISPEC proposes one accessible primary control and identifies the label as a decision.
+- Start silently with written instructions; do not play an initial level-1 cue.
+  Actual level changes announce the selected level, including returning to 1.
+- Fresh navigation starts unmuted. Preserve the choice across level changes;
+  same-tab reload restores it. Blocked storage is logged and must not break play.
+- Muting immediately cancels current audio and pending playlist callbacks.
+  Continue visual feedback, starting correct flashes immediately if needed.
+  Unmuting affects future events only and does not replay canceled cues.
+- The toggle remains enabled while availability is pending and if any relevant
+  clip is usable. Disable it in gray only after all relevant clips fail.
+  Autoplay denial and one missing word clip are not proof that all audio is absent.
+- Check one clip at a time, stop at the first usable clip, and cancel stale
+  checks. Avoid decoder pressure from a parallel scan of all recordings.
+- Audio on is green, mute is red, and unavailable is gray, with accessible
+  names, pressed state, and disabled semantics independent of color.
+
+### PRD-09 — Presentation and accessible operation
+
+Use the supplied local Lexend font and the approved layout/palette in UISPEC.
+Keep the enlarged level selector right-aligned without a separate visible
+Level caption. Support narrow screens from 320 CSS pixels, keyboard focus,
+native level selection, and pointer/touch wheels.
+
+Suppress accidental text selection throughout the game card using CSS without
+blocking button activation, wheel gestures, keyboard operation, or accessible
+text. Detailed dimensions, timing, icon geometry, and reduced-motion behavior
+are specified in UISPEC; no unverified accessibility certification is implied.
+
+### PRD-10 — Asset provenance and release rights
+
+Inventory every supplied source media asset, including retained unused files,
+with path, creator, license, source, and notes. Preserve required license notices
+in distribution. Record unknown rights as `NOASSERTION`, not as permission.
+
+ElevenLabs free-plan recordings retain the contributor-supplied restrictions
+and outstanding distribution approval. The supplied pictures and original
+generated WAV have unresolved rights/license decisions. A complete inventory
+does not make the product cleared for commercial use or redistribution.
+
+## 5. User journey
+
+1. Load and validate local levels; show a loading indication or blocking error.
+2. Show level 1, written instructions, an empty picture frame, fixed letters,
+   and `?` on adjustable wheels; enable Find a word.
+3. Find a target: show its word, resolve its picture, and pronounce it unless
+   sound is intentionally suppressed. Do not solve the wheels.
+4. Move adjustable wheels. Spell becomes available only with a complete
+   selection and no active drag or submission feedback.
+5. Submit. Keep the primary action disabled through audio and flashes.
+6. If incorrect, retain the target/selection for retry. If correct, lock the
+   wheels and enable Find a word only after feedback completes.
+7. Change level at any time on the playable screen to reset the attempt;
+   preserve mute preference and announce the new level if sound is enabled.
 
 ## 6. Acceptance criteria
 
-The MVP is acceptable when all of the following are true:
+1. The supplied catalog loads into five selectable levels; invalid data never
+   produces a fabricated playable level.
+2. Selection does not solve wheels; fixed/adjustable placeholders, ordered
+   wrapping, 40px wheel steps, and keyboard equivalents match UISPEC.
+3. No incomplete submission is accepted, including all three adjustable
+   positions in level 5.
+4. Only an exact target match succeeds; retries do not silently select a word.
+5. Word/image/narration ordering, both image formats, fallback, three flashes,
+   and the audio-plus-animation lock satisfy TESTSPEC.
+6. Muting, availability failure, audio errors, and level cancellation preserve
+   playable state without stale callbacks or a permanently disabled button.
+7. Local font/image/audio loading works offline with no external requests;
+   actual older-device and container checks remain required before release.
+8. Presentation, accessible names, no accidental text selection, source
+   inventory, and applicable packaging/reporting checks pass their tests.
 
-1. A valid level with exactly three wheel definitions and at least one valid word reaches the ready state.
-2. The middle wheel's configured set and every settled middle letter contain only the accepted vowel characters.
-3. Each selection is a word from the configured list, and after the animation the three displayed letters equal that word in order.
-4. For a valid word with available media, its image is visible and its pronunciation is audibly played after selection.
-5. Invalid or missing level data causes an explicit error state instead of a partial playable state.
-6. Missing/corrupt image or audio does not prevent the settled word from being read or a subsequent selection.
-7. With the browser/device offline and the game opened from `file://`, the game reaches ready/playable or an explicit local-data error within 10 seconds; it makes zero external network requests.
-8. The build, language pack, launch parameters, and event messages satisfy applicable ThirdPartySpec checks in TESTSPEC.
-9. No behavior listed as out of scope is required for MVP acceptance.
+## 7. Remaining decisions and specification maintenance
 
-## 7. Assumptions and open questions
+### Release gaps, not undecided gameplay
 
-These are explicit proposals/unknowns, not claims made by the source brief. Resolve them before treating the specifications as final:
+- Confirm the Curious Learning engine slug, English catalog code, permanent
+  `sub_app_id`, event acceptance, upload icon, and deployment metadata.
+  Current local values are documented in DEVSPEC, not evidence of assignment.
+- Produce and validate separate Layout A ZIPs and actual container delivery.
+- Resolve ElevenLabs publication/distribution conditions and rights for the
+  two supplied pictures; explicitly license the generated fanfare if used.
+- Validate older Android hardware, WebView behavior, and accessibility
+  requirements. Current reduced-motion mode retains the letter flashes.
+- Address never-completing local requests before asserting the full startup
+  time guarantee under that fault; do not silently relax the 10-second target.
 
-1. **Word-selection control:** Is a single “Spin”/“Choose a word” button the intended interaction, and what should its label be?
-2. **Vowels:** Should the middle-wheel vowel set be exactly `a, e, i, o, u` (excluding `y`)?
-3. **Randomization:** Is uniform selection with replacement acceptable, or should the game avoid repeating words until the list is exhausted?
-4. **Level behavior:** Does one launch represent one fixed level, with the player able to request words indefinitely? The MVP brief does not define completion or level transitions.
-5. **Media fallback:** Is a neutral missing-image/audio indication acceptable, or should product artwork/audio be supplied for fallbacks?
-6. **Language code and reporting ID:** Confirm the Curious Reader catalog code for English and the stable `sub_app_id` with Curious Learning.
-7. **Telemetry events:** Confirm whether `game_started` and `word_presented` are the desired events, and which fields the data team requires. These are proposed integration events, not game mechanics.
-8. **Animation/accessibility:** Confirm proposed default spin duration and reduced-motion behavior in UISPEC.
-9. **Audio policy:** Confirm whether audio should play automatically after the first player gesture (proposed), or require a separate sound control.
+### Maintenance workflow
+
+Every new task plan must reference all four specs. After a task is complete,
+tested, and approved, propose a separate specification-update task and obtain
+approval before editing specs. For every altered spec update Status and
+Last updated, append `2026-MM-DD — <author> — <one-sentence description of change>`
+at the bottom change log, and report additions, removals, and replacements.
 
 ## 8. Source references
 
-- [**GameSpecBrief**](https://docs.google.com/document/d/1MWGOzbIT0L_k6DkbJx-zyBHK1l9PvwqZ7D6SVCB8iEk/edit?tab=t.0), “Purpose/objective” and “MVP Implementation.” Only MVP scope is used; “Better Implementation” and “Great Implementation” are excluded.
-- [**ThirdPartySpec**](https://docs.google.com/document/d/1GHSxckarR4x6ERPmKJlM3IL34-3LuplQ/edit#heading=h.xbi1mcqif22u), v1.8: applicable runtime, offline compliance, media, packaging, event, and self-verification requirements.
-- [**SDAD**](https://medium.com/@guruduth.banavar/spec-driven-ai-development-engineering-discipline-for-the-ai-coding-era-22a678067b1c), “Spec-Driven AI Development: Engineering Discipline for the AI Coding Era”: specification-first, traceability, built-in testability, and intentional versioned change.
+- [**GameSpecBrief**](https://docs.google.com/document/d/1MWGOzbIT0L_k6DkbJx-zyBHK1l9PvwqZ7D6SVCB8iEk/edit?tab=t.0), original MVP baseline; unapproved Better/Great tiers remain excluded.
+- [**ThirdPartySpec**](https://docs.google.com/document/d/1GHSxckarR4x6ERPmKJlM3IL34-3LuplQ/edit#heading=h.xbi1mcqif22u), v1.8: offline runtime, packaging, media, reporting, and release validation.
+- [**SDAD**](https://medium.com/@guruduth.banavar/spec-driven-ai-development-engineering-discipline-for-the-ai-coding-era-22a678067b1c), specification-first traceability and controlled changes.
+- Approved follow-ups: [manual gameplay](../tasks/draft/reworked-game-logic.md), [audio](../tasks/draft/mutable-audio.md), [font/licensing synchronization](../tasks/spec/update-font-and-licensing-specifications.md), and [images/selector synchronization](../tasks/spec/update-images-licenses-and-level-selector-specifications.md); final feedback-lock, icon-color, and selection changes approved in the session.
 
 ## 9. Change log
 
 2026-11-13 — Copilot — Created the initial MVP product requirements and recorded source gaps as open questions.
 2026-11-16 — Copilot — Specified that plain-browser launches default to English when cr_lang is absent while container launches still require it.
+2026-11-17 — Copilot — Replaced automatic spinning and resolved gameplay proposals with approved manual spelling, feedback locking, local media, mute controls, presentation, and licensing requirements while retaining explicit release gaps.

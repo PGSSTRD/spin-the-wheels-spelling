@@ -1,14 +1,21 @@
 # Task: Update audio and mute-control specifications
 
-**Status:** Draft - awaiting approval before specification edits
+**Status:** Completed - synchronized with all four specifications
 
 **Created:** 2026-11-17
+
+**Completed:** 2026-11-17
+
+The user's final instruction to get the specifications up to date authorized
+the combined synchronization. The planning sections below are historical;
+the completion record documents superseding decisions and the final scope.
 
 ## Objective
 
 Synchronize the four specifications with the implemented mute controls and
 approved icon states from [mutable-audio](../draft/mutable-audio.md).
-The user approved creating this draft task, not editing the specifications yet.
+At draft creation, approval covered the task only; specification edits were
+subsequently authorized by the final synchronization request.
 
 ## Specification references and planned changes
 
@@ -134,4 +141,25 @@ For every specification altered:
    any remaining directly relevant mismatch.
 
 Validate consistency across all four documents and check formatting with
-`git diff --check`. Request user approval before implementing this draft.
+`git diff --check`.
+
+## Completion record (2026-11-17)
+
+- Updated [PRD](../../specs/PRD.md), [DEVSPEC](../../specs/DEVSPEC.md),
+  [UISPEC](../../specs/UISPEC.md), and [TESTSPEC](../../specs/TESTSPEC.md),
+  including Status, Last updated, appended change logs, and traceability.
+- Specified mute/reload behavior, cancellation, one-at-a-time availability
+  probing, audio sequencing, accessible toggle behavior, and placement.
+- Later approved green unmuted (`#2f7642`) and red muted (`#e42e2e`) artwork
+  supersedes the original draft's black active icons; unavailable remains
+  neutral gray. Original circular unmuted artwork remains unused.
+- The final approval expanded scope beyond this draft's manual-gameplay
+  exclusion: all four specs now describe the approved manual spelling game,
+  including its audio-plus-animation feedback lock and muted visual wait.
+- The historical 42-App-test count is not current coverage. Latest recorded
+  implementation evidence is 60 full-suite tests, then 50 targeted App/Wheel
+  tests after the final CSS change, with successful type-check/build.
+- See the [combined completion report](update-images-licenses-and-level-selector-specifications.md)
+  for all additions/removals/replacements and unresolved release obligations.
+  No runtime code, media, rights declarations, commit, or push was changed
+  by this specification synchronization.

@@ -1,5 +1,14 @@
+@font-face {
+  font-family: "Lexend";
+  src: url("../content/assets/fonts/lexend-v26-latin-regular.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
 :root {
-  font-family: "DM Sans", "Trebuchet MS", sans-serif;
+  --font-family: "Lexend", sans-serif;
+  font-family: var(--font-family);
   color: #23332c;
   background: #edf4ec;
   font-synthesis: none;
@@ -36,6 +45,8 @@ button, select { font: inherit; }
   background: #fffefa;
   box-shadow: 0 24px 70px #24452f18, 0 3px 10px #24452f0b;
   text-align: center;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .game-header {
@@ -53,7 +64,7 @@ button, select { font: inherit; }
   border-radius: 17px;
   background: #dff2d9;
   color: #368047;
-  font: 700 30px "Trebuchet MS", sans-serif;
+  font: 700 30px var(--font-family);
   transform: rotate(-6deg);
 }
 
@@ -68,25 +79,24 @@ button, select { font: inherit; }
 h1 {
   margin: 3px 0 0;
   color: #244b34;
-  font: 600 clamp(23px, 5vw, 32px)/1.1 "Trebuchet MS", sans-serif;
+  font: 600 clamp(23px, 5vw, 32px)/1.1 var(--font-family);
 }
 
 .level-picker {
   display: grid;
-  gap: 4px;
+  align-self: flex-end;
   margin-left: auto;
-  color: #637569;
-  font-size: 11px;
-  font-weight: 700;
 }
 
 .level-picker select {
   min-width: 96px;
-  padding: 8px 26px 8px 10px;
+  height: 36px;
+  padding: 0 10px;
   border: 1px solid #dce8dc;
   border-radius: 11px;
   background: #fff;
   color: #294d35;
+  font-size: clamp(16px, 2.5vw, 20px);
   font-weight: 600;
 }
 
@@ -135,8 +145,10 @@ h1 {
   display: grid;
   place-items: center;
   color: var(--wheel-letter-color);
-  font: 600 48px/1 "Trebuchet MS", sans-serif;
+  font: 600 48px/1 var(--font-family);
   text-transform: uppercase;
+  /* Center Lexend's visible capitals without changing the wheel's letter spacing. */
+  transform: translateY(-2.5px);
 }
 
 .wheel-fixed, .wheels-awaiting-word .wheel-window {
@@ -194,15 +206,16 @@ h1 {
 .result-prompt { color: #8a978c; font-size: 13px; }
 .spelled-word {
   color: #e48a35;
-  font: 600 42px/1 "Trebuchet MS", sans-serif;
+  font: 600 42px/1 var(--font-family);
   letter-spacing: .14em;
   text-transform: uppercase;
 }
 
 .picture-panel {
   display: grid;
+  grid-template-rows: minmax(0, 1fr);
   place-items: center;
-  min-height: 146px;
+  height: 146px;
   margin: 8px auto 20px;
   width: min(100%, 260px);
   overflow: hidden;
@@ -211,17 +224,14 @@ h1 {
   background: #f8fbf6;
 }
 
-.word-picture {
+.word-picture, .media-fallback {
   display: block;
-  width: 100%;
-  height: 146px;
+  width: 80%;
+  height: 80%;
   object-fit: contain;
-  padding: 12px;
 }
 
-.media-fallback { padding: 18px; color: #77877b; }
-.media-fallback span { font-size: 34px; }
-.media-fallback p { margin: 8px 0 0; font-size: 13px; }
+.media-fallback { filter: grayscale(1); }
 .media-status { margin: 10px 0 0; color: #8b6945; font-size: 12px; }
 
 .game-actions {
@@ -246,7 +256,7 @@ h1 {
 
 .audio-toggle img { display: block; width: 100%; height: 100%; }
 .audio-toggle:disabled { cursor: not-allowed; }
-.audio-toggle:disabled img { filter: invert(.55); }
+.audio-toggle:disabled img { filter: brightness(0) invert(.55); }
 
 .spin-button {
   display: inline-flex;
@@ -264,7 +274,7 @@ h1 {
   box-shadow: 0 5px 0 #28683a, 0 10px 20px #38874b25;
   color: #fff;
   cursor: pointer;
-  font: 600 clamp(14px, 3.8vw, 19px) "Trebuchet MS", sans-serif;
+  font: 600 clamp(14px, 3.8vw, 19px) var(--font-family);
   white-space: nowrap;
   transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
 }
@@ -294,6 +304,6 @@ h1 {
   .game-card { --brand-size: 44px; border-radius: 24px; }
   .game-header { gap: 10px; }
   .brand-mark { border-radius: 14px; }
-  .level-picker select { min-width: 82px; padding-inline: 8px 20px; }
+  .level-picker select { min-width: 82px; padding-inline: 6px; }
   .instruction { margin-top: 26px; }
 }

@@ -6,6 +6,7 @@ import { App } from "./App";
 import type { Level } from "./types";
 import mutedIcon from "../content/assets/icons/audio-muted.svg";
 import unmutedIcon from "../content/assets/icons/audio-unmuted-v2.svg";
+import paintingFallback from "../content/assets/images/painting.svg";
 
 const levels = parseLevels(levelsData);
 const instruction = "Give the wheels a spin and spell a word!";
@@ -76,8 +77,35 @@ async function openGame(data = levels, random = () => 0) {
 function findWord(fallback = false, word = "cat") {
   fireEvent.click(screen.getByRole("button", { name: "Find a word" }));
   const image = screen.getByRole("img", { name: word });
-  if (fallback) fireEvent.error(image);
-  else fireEvent.load(image);
+  if (fallback) {
+    fireEvent.error(image);
+    fireEvent.error(screen.getByRole("img", { name: word }));
+  } else {
+    fireEvent.load(image);
+  }
+}
+
+function finishFeedbackAudio() {
+  act(() => {
+    const player = audioPlayers.at(-1);
+    const ended = player?.onended;
+    ended?.();
+    // Completing the cue replaces this handler with the word's completion handler.
+    if (player?.onended !== ended) player?.onended?.();
+  });
+}
+
+function finishFlashes() {
+  const wheels = screen.getByRole("group", { name: "Spelling wheels" });
+  const selector = wheels.classList.contains("wheels-correct")
+    ? ".wheel-letter:nth-child(2)"
+    : ".wheel-incorrect .wheel-letter:nth-child(2)";
+  wheels.querySelectorAll(selector).forEach((letter) => fireEvent.animationEnd(letter));
+}
+
+function finishFeedback() {
+  finishFeedbackAudio();
+  finishFlashes();
 }
 
 function controlAnimationFrames() {
@@ -133,6 +161,7 @@ describe("manual spelling cycle", () => {
     expect(toggle).toHaveAccessibleName("Mute audio");
     expect(toggle.querySelector("img")).toHaveAttribute("src", unmutedIcon);
     expect(audioPlay).not.toHaveBeenCalled();
+    finishFlashes();
     findWord(false, "map");
     expect(audioSources).toEqual(["lang/english/audio/words/map.mp3"]);
   });
@@ -157,6 +186,9 @@ describe("manual spelling cycle", () => {
     expect(warning).not.toHaveBeenCalled();
     if (phase !== "pronunciation") {
       expect(screen.getByRole("group", { name: "Spelling wheels" })).toHaveClass("wheels-correct");
+      expect(screen.getByRole("button", { name: "Find a word" })).toBeDisabled();
+      finishFlashes();
+      expect(screen.getByRole("button", { name: "Find a word" })).toBeEnabled();
     }
     fireEvent.click(screen.getByRole("button", { name: "Unmute audio" }));
     expect(audioSources).toEqual(sources);
@@ -237,6 +269,9 @@ describe("manual spelling cycle", () => {
     fireEvent.click(screen.getByRole("button", { name: "Spell" }));
     expect(screen.getByRole("group", { name: "Spelling wheels" })).toHaveClass("wheels-correct");
     expect(audioPlay).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "Find a word" })).toBeDisabled();
+    finishFlashes();
+    expect(screen.getByRole("button", { name: "Find a word" })).toBeEnabled();
     fireEvent.change(screen.getByRole("combobox"), { target: { value: "1" } });
     act(() => audioChecks.at(-1)?.onloadeddata?.());
     expect(screen.getByRole("button", { name: muted ? "Unmute audio" : "Mute audio" })).toBeEnabled();
@@ -287,7 +322,8 @@ describe("manual spelling cycle", () => {
 
   it("announces only actual level changes, including returning to level 1", async () => {
     await openGame();
-    const picker = screen.getByRole("combobox");
+    const picker = screen.getByRole("combobox", { name: "Choose level" });
+    expect(screen.queryByText("Level", { exact: true })).not.toBeInTheDocument();
     fireEvent.change(picker, { target: { value: "0" } });
     expect(audioSources).toEqual([]);
     for (const index of [1, 2, 3, 4, 0]) {
@@ -298,7 +334,7 @@ describe("manual spelling cycle", () => {
     ]);
   });
 
-  it("replays try-again narration on each incorrect submission without overlapping audio", async () => {
+  it("blocks repeated submissions during retry feedback and allows retry afterward", async () => {
     await openGame();
     findWord();
     const wheel = screen.getByRole("spinbutton");
@@ -307,10 +343,60 @@ describe("manual spelling cycle", () => {
     fireEvent.click(screen.getByRole("button", { name: "Spell" }));
     audioPause.mockClear();
     fireEvent.click(screen.getByRole("button", { name: "Spell" }));
+    expect(audioSources.filter((source) => source === retrySource)).toHaveLength(1);
+    expect(audioPause).not.toHaveBeenCalled();
+    finishFeedbackAudio();
+    expect(screen.getByRole("button", { name: "Spell" })).toBeDisabled();
+    finishFlashes();
+    expect(screen.getByRole("button", { name: "Spell" })).toBeEnabled();
+    fireEvent.click(screen.getByRole("button", { name: "Spell" }));
     expect(audioSources.slice(-2)).toEqual([retrySource, retrySource]);
     expect(audioPause).toHaveBeenCalledOnce();
     expect(screen.getByRole("status")).toHaveTextContent("Please try again!");
     expect(wheel).toHaveClass("wheel-incorrect");
+  });
+
+  it.each(["audio", "flashes"])("waits for all correct-answer feedback when %s finishes first", async (first) => {
+    await openGame();
+    findWord();
+    fireEvent.keyDown(screen.getByRole("spinbutton"), { key: "ArrowUp" });
+    fireEvent.click(screen.getByRole("button", { name: "Spell" }));
+    const button = screen.getByRole("button", { name: "Find a word" });
+    expect(button).toBeDisabled();
+    fireEvent.click(button);
+    expect(screen.getByText("cat")).toBeInTheDocument();
+    expect(audioSources).toHaveLength(2);
+    act(() => audioPlayers[1].onended?.());
+    act(() => audioPlayers[1].onplaying?.());
+    if (first === "audio") act(() => audioPlayers[1].onended?.());
+    const letters = screen.getByRole("group", { name: "Spelling wheels" }).querySelectorAll(".wheel-letter:nth-child(2)");
+    fireEvent.animationEnd(letters[0]);
+    fireEvent.animationEnd(letters[1]);
+    expect(button).toBeDisabled();
+    fireEvent.animationEnd(letters[2]);
+    if (first === "flashes") {
+      expect(button).toBeDisabled();
+      act(() => audioPlayers[1].onplaying?.());
+      act(() => audioPlayers[1].onended?.());
+    }
+    expect(button).toBeEnabled();
+  });
+
+  it("waits only for red flashes on muted retries, including repeated attempts", async () => {
+    await openGame();
+    fireEvent.click(screen.getByRole("button", { name: "Mute audio" }));
+    findWord();
+    const wheel = screen.getByRole("spinbutton");
+    fireEvent.keyDown(wheel, { key: "ArrowUp" });
+    fireEvent.keyDown(wheel, { key: "ArrowUp" });
+    const button = screen.getByRole("button", { name: "Spell" });
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      fireEvent.click(button);
+      expect(button).toBeDisabled();
+      finishFlashes();
+      expect(button).toBeEnabled();
+    }
+    expect(audioPlay).not.toHaveBeenCalled();
   });
 
   it.each(["level", "retry"])("reports a non-blocking %s narration failure", async (cue) => {
@@ -327,6 +413,10 @@ describe("manual spelling cycle", () => {
     expect(await screen.findByText(cue === "level"
       ? "The level announcement could not be played."
       : "The try-again audio could not be played.")).toBeInTheDocument();
+    if (cue === "retry") {
+      expect(screen.getByRole("button", { name: "Spell" })).toBeDisabled();
+      finishFlashes();
+    }
     expect(screen.getByRole("button", { name: cue === "level" ? "Find a word" : "Spell" })).toBeEnabled();
     expect(warning).toHaveBeenCalledWith(
       cue === "level" ? "Could not play level announcement." : "Could not play try-again audio.",
@@ -359,7 +449,9 @@ describe("manual spelling cycle", () => {
     expect(wheel).toHaveAttribute("aria-disabled", "true");
     expect(wheel).toHaveAttribute("aria-valuetext", "Not selected");
     expect(screen.getByRole("button", { name: "Find a word" })).toBeDisabled();
-    fireEvent.load(screen.getByRole("img", { name: "cat" }));
+    const image = screen.getByRole("img", { name: "cat" });
+    expect(image).toHaveAttribute("src", "assets/images/cat.svg");
+    fireEvent.load(image);
     expect(wheel).toHaveAttribute("aria-disabled", "false");
     fireEvent.click(screen.getByRole("button", { name: "Find a word" }));
     expect(random).toHaveBeenCalledOnce();
@@ -382,6 +474,8 @@ describe("manual spelling cycle", () => {
     fireEvent.keyDown(wheel, { key: "ArrowDown" });
     expect(screen.getByRole("status")).toHaveTextContent(instruction);
     expect(wheel).not.toHaveClass("wheel-incorrect");
+    expect(screen.getByRole("button", { name: "Spell" })).toBeDisabled();
+    finishFeedbackAudio();
     fireEvent.click(screen.getByRole("button", { name: "Spell" }));
     expect(screen.getByRole("status")).toHaveTextContent("Correct!");
     expect(wheel).toHaveAttribute("aria-disabled", "true");
@@ -389,10 +483,11 @@ describe("manual spelling cycle", () => {
     expect(wheel).toHaveAttribute("aria-valuetext", "c");
     expect(audioSources).toEqual(["lang/english/audio/words/cat.mp3", retrySource, "lang/english/audio/correct.mp3"]);
 
+    finishFeedback();
     findWord(false, "mat");
     expect(screen.getByRole("spinbutton")).toHaveAttribute("aria-valuetext", "Not selected");
     expect(screen.getByRole("status")).toHaveTextContent(instruction);
-    expect(audioPlay).toHaveBeenCalledTimes(4);
+    expect(audioPlay).toHaveBeenCalledTimes(5);
     expect(audioPause).toHaveBeenCalledTimes(3);
   });
 
@@ -419,6 +514,7 @@ describe("manual spelling cycle", () => {
     expect(wheels).not.toHaveClass("wheels-correct");
     act(() => audioPlayers[1].onplaying?.());
     expect(wheels).toHaveClass("wheels-correct");
+    finishFeedback();
     findWord(false, "mat");
     expect(wheels).not.toHaveClass("wheels-correct");
     fireEvent.keyDown(screen.getByRole("spinbutton"), { key: "ArrowUp" });
@@ -458,14 +554,16 @@ describe("manual spelling cycle", () => {
     act(() => audioPlayers[1].onended?.());
     expect(await screen.findByText("Audio for “cat” is unavailable.")).toBeInTheDocument();
     expect(screen.getByRole("group", { name: "Spelling wheels" })).toHaveClass("wheels-correct");
+    expect(screen.getByRole("button", { name: "Find a word" })).toBeDisabled();
+    finishFlashes();
     expect(screen.getByRole("button", { name: "Find a word" })).toBeEnabled();
     findWord(false, "mat");
     expect(screen.queryByText("Audio for “cat” is unavailable.")).not.toBeInTheDocument();
   });
 
   it.each([
-    ["correct", "new word"], ["correct", "level change"], ["correct", "unmount"],
-    ["word", "new word"], ["word", "level change"], ["word", "unmount"],
+    ["correct", "level change"], ["correct", "unmount"],
+    ["word", "level change"], ["word", "unmount"],
   ])("cancels the %s audio phase on %s and ignores stale callbacks", async (phase, action) => {
     const warning = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     await openGame();
@@ -475,8 +573,8 @@ describe("manual spelling cycle", () => {
     if (phase === "word") act(() => audioPlayers[1].onended?.());
     const { onended, onplaying, onerror } = audioPlayers[1];
     audioPause.mockClear();
-    if (action === "new word") findWord(false, "mat");
-    else if (action === "level change") fireEvent.change(screen.getByRole("combobox"), { target: { value: "1" } });
+    expect(screen.getByRole("button", { name: "Find a word" })).toBeDisabled();
+    if (action === "level change") fireEvent.change(screen.getByRole("combobox"), { target: { value: "1" } });
     else cleanup();
     const sources = [...audioSources];
     expect(audioPause).toHaveBeenCalledOnce();
@@ -489,6 +587,7 @@ describe("manual spelling cycle", () => {
     expect(warning).not.toHaveBeenCalled();
     if (action !== "unmount") {
       expect(screen.getByRole("group", { name: "Spelling wheels" })).not.toHaveClass("wheels-correct");
+      expect(screen.getByRole("button", { name: "Find a word" })).toBeEnabled();
     }
   });
 
@@ -510,6 +609,7 @@ describe("manual spelling cycle", () => {
       }
       fireEvent.click(screen.getByRole("button", { name: "Spell" }));
       expect(screen.getByRole("status")).toHaveTextContent("Correct!");
+      finishFeedback();
     }
 
     expect(random).toHaveBeenCalledTimes(expected.length);
@@ -542,6 +642,7 @@ describe("manual spelling cycle", () => {
     }
     fireEvent.click(screen.getByRole("button", { name: "Spell" }));
     expect(screen.getByRole("status")).toHaveTextContent("Correct!");
+    finishFeedback();
     findWord(false, "cam");
     expect(screen.getByRole("button", { name: "Find a word" })).toBeDisabled();
     for (const wheel of screen.getAllByRole("spinbutton")) {
@@ -606,24 +707,55 @@ describe("manual spelling cycle", () => {
     expect(screen.queryByRole("spinbutton")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Spell" }));
     expect(screen.getByRole("status")).toHaveTextContent("Correct!");
+    finishFeedback();
     findWord();
     fireEvent.click(screen.getByRole("button", { name: "Spell" }));
     expect(screen.getByRole("status")).toHaveTextContent("Correct!");
   });
 
-  it("keeps the approved layout and enables play when the image fallback is shown", async () => {
+  it("tries JPG after SVG fails, waits for it, and restarts with SVG for new words and levels", async () => {
+    await openGame();
+    fireEvent.click(screen.getByRole("button", { name: "Find a word" }));
+    fireEvent.error(screen.getByRole("img", { name: "cat" }));
+    const jpg = screen.getByRole("img", { name: "cat" });
+    expect(jpg).toHaveAttribute("src", "assets/images/cat.jpg");
+    const wheel = screen.getByRole("spinbutton");
+    expect(wheel).toHaveAttribute("aria-disabled", "true");
+    expect(screen.queryByRole("img", { name: "Picture of cat is unavailable" })).not.toBeInTheDocument();
+    fireEvent.load(jpg);
+    expect(wheel).toHaveAttribute("aria-disabled", "false");
+    fireEvent.keyDown(wheel, { key: "ArrowUp" });
+    fireEvent.click(screen.getByRole("button", { name: "Spell" }));
+    finishFeedback();
+    fireEvent.click(screen.getByRole("button", { name: "Find a word" }));
+    const nextImage = screen.getByRole("img", { name: "mat" });
+    expect(nextImage).toHaveAttribute("src", "assets/images/mat.svg");
+    fireEvent.error(nextImage);
+    expect(screen.getByRole("img", { name: "mat" })).toHaveAttribute("src", "assets/images/mat.jpg");
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "1" } });
+    fireEvent.click(screen.getByRole("button", { name: "Find a word" }));
+    expect(screen.getByRole("img", { name: "cap" })).toHaveAttribute("src", "assets/images/cap.svg");
+  });
+
+  it("keeps the approved layout and enables play when both image formats fail", async () => {
     await openGame();
     const wheels = screen.getByRole("group", { name: "Spelling wheels" });
     const button = screen.getByRole("button", { name: "Find a word" });
+    const emptyPicture = screen.getByRole("region", { name: "Word picture" });
+    expect(emptyPicture).toBeEmptyDOMElement();
+    expect(emptyPicture.nextElementSibling).toBe(wheels);
     expect(wheels.nextElementSibling).toBe(button.parentElement);
     findWord(true);
     const picture = screen.getByRole("region", { name: "Picture for cat" });
     expect(picture.nextElementSibling).toBe(wheels);
     expect(wheels.nextElementSibling).toBe(button.parentElement);
-    expect(screen.getByRole("img", { name: "Picture of cat is unavailable" })).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Picture of cat is unavailable" })).toHaveAttribute("src", paintingFallback);
+    expect(picture).toHaveTextContent(/^$/);
     fireEvent.keyDown(screen.getByRole("spinbutton"), { key: "ArrowUp" });
     expect(button).toBeEnabled();
     expect(button).toHaveTextContent("Spell");
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "1" } });
+    expect(screen.getByRole("region", { name: "Word picture" })).toBeEmptyDOMElement();
   });
 
   it("exposes a non-blocking error if the supplied word MP3 fails", async () => {

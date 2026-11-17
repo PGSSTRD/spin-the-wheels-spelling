@@ -6,6 +6,9 @@ import { defineConfig, type Plugin } from "vitest/config";
 function levelsDataPlugin(): Plugin {
   const sourcePath = resolve(process.cwd(), "content/lang/english/levels.json");
   const audioPath = resolve(process.cwd(), "content/lang/english/audio");
+  const imagesPath = resolve(process.cwd(), "content/assets/images");
+  const fontLicensePath = resolve(process.cwd(), "content/assets/fonts/OFL-Lexend.txt");
+  const licensesPath = resolve(process.cwd(), "content/licenses.json");
   let outputPath = resolve(process.cwd(), "dist");
 
   return {
@@ -14,6 +17,25 @@ function levelsDataPlugin(): Plugin {
       outputPath = resolve(config.root, config.build.outDir);
     },
     configureServer(server) {
+      server.middlewares.use("/assets/images", (request, response, next) => {
+        const pathname = (request.url ?? "").split("?")[0];
+        if (!/^\/[a-z]+\.(?:svg|jpg)$/.test(pathname)) {
+          next();
+          return;
+        }
+        try {
+          const image = readFileSync(resolve(imagesPath, `.${pathname}`));
+          response.setHeader("Content-Type", pathname.endsWith(".svg") ? "image/svg+xml" : "image/jpeg");
+          response.end(image);
+        } catch (error) {
+          if (error instanceof Error && "code" in error && error.code === "ENOENT") {
+            response.statusCode = 404;
+            response.end("Image not found.");
+            return;
+          }
+          next(error instanceof Error ? error : new Error("Could not read image asset."));
+        }
+      });
       server.middlewares.use("/lang/english/audio", (request, response, next) => {
         const pathname = (request.url ?? "").split("?")[0];
         if (!/^\/(?:[a-z0-9-]+|words\/[a-z]+)\.mp3$/.test(pathname)) {
@@ -41,6 +63,11 @@ function levelsDataPlugin(): Plugin {
       mkdirSync(resolve(outputPath, "lang/english"), { recursive: true });
       copyFileSync(sourcePath, targetPath);
       cpSync(audioPath, resolve(outputPath, "lang/english/audio"), { recursive: true });
+      cpSync(imagesPath, resolve(outputPath, "assets/images"), { recursive: true });
+      mkdirSync(resolve(outputPath, "assets/fonts"), { recursive: true });
+      copyFileSync(fontLicensePath, resolve(outputPath, "assets/fonts/OFL-Lexend.txt"));
+      mkdirSync(resolve(outputPath, "content"), { recursive: true });
+      copyFileSync(licensesPath, resolve(outputPath, "content/licenses.json"));
     },
     writeBundle() {
       const htmlPath = resolve(outputPath, "index.html");
@@ -68,6 +95,11 @@ export default defineConfig({
       output: {
         format: "iife",
         name: "SpinTheWheels",
+        assetFileNames(asset) {
+          return asset.names.includes("lexend-v26-latin-regular.woff2")
+            ? "assets/fonts/[name][extname]"
+            : "assets/[name]-[hash][extname]";
+        },
       },
     },
   },

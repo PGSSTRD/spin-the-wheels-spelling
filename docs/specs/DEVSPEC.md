@@ -1,7 +1,7 @@
 # Spin The Wheels — Developer Specification
 
-**Status:** Synchronized through 2026-11-17, including language and retained-asset audio paths; release packaging, identifiers, rights, and device validation remain outstanding
-**Last updated:** 2026-11-17
+**Status:** Synchronized through 2026-11-18, including package-root license manifest output; release packaging, identifiers, rights, and device validation remain outstanding
+**Last updated:** 2026-11-18
 **Product scope:** MVP-derived game with approved manual-spelling changes
 
 ## 1. Purpose and implementation baseline
@@ -322,7 +322,7 @@ assets/fonts/OFL-Lexend.txt
 lang/english/levels.json
 lang/english/audios/<cues>.mp3
 lang/english/audios/words/<word>.mp3
-content/licenses.json
+licenses.json
 ```
 
 - Copy source images, English audio, and level JSON to those paths. The font
@@ -352,8 +352,9 @@ content/licenses.json
   font files. Preserve the font and OFL notice byte-for-byte.
 - Source `content/licenses.json` contains an `assets` array of objects with
   unique `path` and non-empty `creator`, `license`, `source`, `notes` strings.
-  Paths omit source `content/`; interpret as content/package-root-relative,
-  not relative to the packaged manifest's directory.
+  Copy it unchanged to package-root `licenses.json`; do not create a `content/`
+  directory solely for the manifest. Paths omit source `content/`; interpret
+  them relative to the content root in source and the package root in output.
 - Cover retained unused source media too. Current inventory has 56 assets:
 
 | Assets | Count | Recorded license / provenance |
@@ -413,3 +414,4 @@ that flashes are reduced or a full accessibility audit has passed.
 2026-11-17 — Copilot — Replaced the obsolete schema and automatic-spin state machine with the current catalog, manual feedback gate, sequential media and probe logic, mute persistence, asset inventory, and explicit release-package gaps.
 2026-11-17 — Copilot — Changed English recording source, runtime, probe, package, and license-inventory paths to the required audios folder while preserving media bytes and behavior.
 2026-11-17 — Copilot — Renamed the top-level retained-audio folder to audios and updated the fanfare inventory path without bundling or activating it.
+2026-11-18 — Copilot — Moved the packaged license manifest to root-level licenses.json while preserving its source location, contents, and asset-path semantics.

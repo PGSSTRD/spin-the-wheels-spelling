@@ -143,8 +143,8 @@ Lexend is OFL-1.1; its full supplied copyright/license notice is retained at
 [content/assets/fonts/OFL-Lexend.txt](content/assets/fonts/OFL-Lexend.txt).
 Paths omit the source `content/` prefix; active icons are inlined in the
 application bundle. The build emits the font unchanged under `assets/fonts/`,
-copies the OFL notice alongside it, and includes the manifest under
-`content/licenses.json`.
+copies the OFL notice alongside it, and includes the manifest at the package
+root as `licenses.json`. The source remains `content/licenses.json`.
 The MP3 entries record the contributor-reported ElevenLabs free-plan origin
 and supplied restrictions, including no commercial license and outstanding
 distribution approval. The manifest alone does not satisfy the reported

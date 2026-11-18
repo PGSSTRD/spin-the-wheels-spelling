@@ -66,8 +66,7 @@ function levelsDataPlugin(): Plugin {
       cpSync(imagesPath, resolve(outputPath, "assets/images"), { recursive: true });
       mkdirSync(resolve(outputPath, "assets/fonts"), { recursive: true });
       copyFileSync(fontLicensePath, resolve(outputPath, "assets/fonts/OFL-Lexend.txt"));
-      mkdirSync(resolve(outputPath, "content"), { recursive: true });
-      copyFileSync(licensesPath, resolve(outputPath, "content/licenses.json"));
+      copyFileSync(licensesPath, resolve(outputPath, "licenses.json"));
     },
     writeBundle() {
       const htmlPath = resolve(outputPath, "index.html");

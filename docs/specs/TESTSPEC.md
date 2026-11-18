@@ -1,7 +1,7 @@
 # Spin The Wheels — Test Specification
 
-**Status:** Synchronized through 2026-11-17, including language and retained-audio rename coverage; unit/browser evidence remains separate from outstanding release validation
-**Last updated:** 2026-11-17
+**Status:** Synchronized through 2026-11-18, including package-root license manifest checks; unit/browser evidence remains separate from outstanding release validation
+**Last updated:** 2026-11-18
 **Product scope:** MVP-derived game with approved manual-spelling changes
 
 ## 1. Purpose and evidence policy
@@ -310,6 +310,10 @@ Deliberately make the font unavailable and verify readable sans-serif fallback
 with usable controls and no new clipping/overflow.
 Validate unique inventory paths, five non-empty metadata fields, source-file
 existence, complete media coverage, and packaged-manifest equality.
+After building, require package-root `licenses.json` to be byte-identical to
+source `content/licenses.json`, with no old `content/licenses.json` in output
+and no empty output `content/` directory left solely for it. Manifest entries
+and source location must not change as part of this destination change.
 
 **Pass:** source inventory is currently 56 files: 49 MP3 + 1 WAV + 5 SVG +
 1 WOFF2. Lexend is OFL with notice; three owner-approved speaker SVGs are CC0;
@@ -391,3 +395,4 @@ a successful build, inventory, mocked event, or desktop screenshot.
 2026-11-17 — Copilot — Replaced automatic-spin and obsolete media fixtures with exact current data, manual-wheel, feedback-order, mute/probe, image, typography, licensing, native-selection, and honest release-gap acceptance coverage.
 2026-11-17 — Copilot — Required plural audios paths in playback, probes, development serving, packaging, and license inventory while retaining byte-identical recordings and existing gameplay checks.
 2026-11-17 — Copilot — Updated the retained fanfare path to content/audios while preserving its bytes and exclusion from gameplay and production assets.
+2026-11-18 — Copilot — Required a byte-identical package-root licenses.json and absence of the former nested output without changing source metadata.

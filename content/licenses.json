@@ -1,6 +1,13 @@
 {
   "assets": [
     {
+      "path": "assets/icons/cat-tile-con.png",
+      "creator": "Project contributors; original cat artwork creator unknown",
+      "license": "NOASSERTION",
+      "source": "Created for this repository using assets/images/cat.svg and the active spinner styling",
+      "notes": "512x512 PNG app tile showing a vertically stretched active spinner with the supplied cat artwork replacing its letter. The cat artwork's original provenance and redistribution rights remain unverified; this derivative does not establish additional permissions. Separate CMS upload asset, not used by gameplay."
+    },
+    {
       "path": "assets/images/cat.svg",
       "creator": "Unknown",
       "license": "NOASSERTION",

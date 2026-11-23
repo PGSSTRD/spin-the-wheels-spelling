@@ -89,7 +89,7 @@ h1 {
 }
 
 .level-picker select {
-  min-width: 96px;
+  min-width: calc(96px + 2ch);
   height: 36px;
   padding: 0 10px;
   border: 1px solid #dce8dc;
@@ -98,6 +98,8 @@ h1 {
   color: #294d35;
   font-size: clamp(16px, 2.5vw, 20px);
   font-weight: 600;
+  text-align: left;
+  text-align-last: left;
 }
 
 .level-picker select:focus-visible, .spin-button:focus-visible, .audio-toggle:focus-visible {
@@ -304,6 +306,6 @@ h1 {
   .game-card { --brand-size: 44px; border-radius: 24px; }
   .game-header { gap: 10px; }
   .brand-mark { border-radius: 14px; }
-  .level-picker select { min-width: 82px; padding-inline: 6px; }
+  .level-picker select { min-width: calc(82px + 2ch); padding-inline: 6px; }
   .instruction { margin-top: 26px; }
 }
